@@ -4,7 +4,7 @@ import Home from "./pages/Home"
 import CreateRoom from "./pages/CreateRoom"
 import JoinRoom from "./pages/JoinRoom"
 import Footer from "./components/Footer"
-import Room from "./pages/Room"
+import Room from "./pages/RoomWaiting"
 
 function AppContent(){
   return(
