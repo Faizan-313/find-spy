@@ -55,9 +55,8 @@ spy-game/
 ├── server/             # Backend (Nodejs + Express) 
 │   ├── routes/
 │   ├── controllers/
-│   ├── models/
-│   └── sockets/
-│
+│   └── socket/
+├── server.ts
 ├── .env
 ├── package.json
 └── README.md
