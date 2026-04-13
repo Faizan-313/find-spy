@@ -1,30 +1,33 @@
 import { Copy, CopyCheck } from "lucide-react";
-import { useState } from "react";
+import {  useRef, useEffect } from "react";
+import toast from "react-hot-toast";
+import { io, Socket } from "socket.io-client"
 
 const Room = () => {
-    // Mock data 
-    const roomName = "Nightfall123";
-    const userName = "GHOST";
-    const players = [
-        { name: "GHOST", isHost: true},
-        { name: "VIPER", isHost: false },
-        { name: "CIPHER", isHost: false },
-        { name: "WRAITH", isHost: false },
-    ];
-    
-    const isHost = true;
-    const [copy, setCopy] = useState(false);
+    const socketRef = useRef<Socket | null>(null)
 
-    const handleCopy = () => {
-        const copied = localStorage.getItem("roomName");
-        if(!copied){
-            localStorage.setItem("roomName", roomName);
-        }
-        setCopy(true);
-        setTimeout(()=>{
-            setCopy(false);
-        },1000)
-    }
+    useEffect(() => {
+        const socket = io(import.meta.env.VITE_API_URL, { 
+            transports: ["websocket"],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+        
+        socketRef.current = socket;
+        
+        socket.on('connect', ()=>{
+            socket.emit("joinRoom", {room: 'room h'});
+            
+            socket.emit('submit_vote', {room: 'room h', username: "username"})
+        })
+
+        socket.on("connect_error", () => {
+            toast.error("Connection error. Please check your internet")
+        })
+    })
+        
+    
 
     return (
         <div

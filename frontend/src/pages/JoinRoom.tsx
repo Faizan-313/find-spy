@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { io, Socket } from "socket.io-client";
+import toast from "react-hot-toast";
 
 type User = {
     roomName: string;
@@ -10,12 +13,64 @@ const JoinRoom = () => {
         roomName: "",
         userName: ""
     });
-    
-    const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
+    const [loading, setLoading] = useState(false);
+    const socketRef = useRef<Socket | null>(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const socket = io(import.meta.env.VITE_API_URL, {
+            transports: ["websocket"],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+
+        socketRef.current = socket;
+
+        socket.on("connect_error", () => {
+            toast.error("Connection error. Please check your internet");
+        });
+
+        return () => {
+            socket.off('connect_error');
+        };
+    }, []);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setData({ roomName: "", userName: "" });
+
+        if (!data.roomName.trim() || !data.userName.trim()) {
+            toast.error("Please fill in all fields");
+            return;
+        }
+
+        setLoading(true);
+
+        if (socketRef.current) {
+            socketRef.current.emit('joinRoom', {
+                roomCode: data.roomName,
+                userName: data.userName
+            }, (response: any) => {
+                setLoading(false);
+
+                if (response.success) {
+                    toast.success("Joined room successfully!");
+                    // Navigate to room waiting page with room info
+                    navigate('/room-waiting', {
+                        state: {
+                            roomCode: response.roomCode,
+                            userName: response.userName,
+                            isHost: response.isHost,
+                            players: response.players
+                        }
+                    });
+                } else {
+                    toast.error(response.error || 'Failed to join room');
+                }
+            });
+        }
     };
-    
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setData((prev) => ({ ...prev, [name]: value }));
@@ -64,7 +119,7 @@ const JoinRoom = () => {
                         <div className="flex flex-col gap-2">
                             <label className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase flex items-center gap-2">
                                 <span className="inline-block w-1 h-1 rounded-full bg-[#00ff64]" />
-                                Room Name
+                                Room Code
                             </label>
                             <input
                                 className="bg-transparent border border-white/10 text-white px-4 py-3 text-sm tracking-wider placeholder:text-white/20 outline-none transition-all duration-200
@@ -74,9 +129,45 @@ const JoinRoom = () => {
                                 onChange={handleChange}
                                 name="roomName"
                                 placeholder="OPERATION_NIGHTFALL"
+                                disabled={loading}
                                 style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
                             />
                         </div>
+
+                        <div className="flex flex-col gap-2">
+                            <label className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase flex items-center gap-2">
+                                <span className="inline-block w-1 h-1 rounded-full bg-[#00ff64]" />
+                                Agent Name
+                            </label>
+                            <input
+                                className="bg-transparent border border-white/10 text-white px-4 py-3 text-sm tracking-wider placeholder:text-white/20 outline-none transition-all duration-200
+                                            focus:border-[#00ff64]/60 focus:bg-[#00ff64]/5 focus:shadow-[0_0_20px_rgba(0,255,100,0.1)]"
+                                type="text"
+                                value={data.userName}
+                                onChange={handleChange}
+                                name="userName"
+                                placeholder="GHOST"
+                                disabled={loading}
+                                style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="mt-2 bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-8 py-4 cursor-pointer
+                                        transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.4)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))' }}>
+                            {loading ? "Entering Arena..." : "Enter in the Arena"}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default JoinRoom;
 
                         <div className="flex flex-col gap-2">
                             <label className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase flex items-center gap-2">

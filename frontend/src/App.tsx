@@ -5,6 +5,7 @@ import CreateRoom from "./pages/CreateRoom"
 import JoinRoom from "./pages/JoinRoom"
 import Footer from "./components/Footer"
 import Room from "./pages/RoomWaiting"
+import { Toaster } from "react-hot-toast"
 
 function AppContent(){
   return(
@@ -24,6 +25,7 @@ function App() {
     <>
         <Router>
           <Navbar />
+          <Toaster position="top-center" reverseOrder={false} />
           <AppContent />
           <Footer />
         </Router>

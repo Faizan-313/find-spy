@@ -115,6 +115,22 @@ npm start
 
 ---
 
+# Socket Events 
+
+createRoom
+error
+joinRoom
+startGame
+startVoting
+submitVote
+roomUpdated
+voteSubmitted
+endVoting
+leaveRoom
+disconnect
+
+---
+
 ## How to Play
 
 1. Create or join a game room using a code generated after creating room
