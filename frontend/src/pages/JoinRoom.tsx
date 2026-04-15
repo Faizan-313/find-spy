@@ -2,16 +2,17 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 import toast from "react-hot-toast";
+import type { socketRoom } from "../types/types"
 
-type User = {
-    roomName: string;
-    userName: string;
-};
+interface JoinRoomProps {
+    roomCode: string;
+    username: string;
+}
 
 const JoinRoom = () => {
-    const [data, setData] = useState<User>({
-        roomName: "",
-        userName: ""
+    const [data, setData] = useState<JoinRoomProps>({
+        roomCode: "",
+        username: ""
     });
     const [loading, setLoading] = useState(false);
     const socketRef = useRef<Socket | null>(null);
@@ -27,6 +28,25 @@ const JoinRoom = () => {
 
         socketRef.current = socket;
 
+        socket.on('error', (err: {message: string}) => {
+            setLoading(false);
+            toast.error(err.message || "An error occured while joining the room")
+        })
+
+        socket.on("roomUpdated", (response: socketRoom) => {
+            setLoading(false);
+            toast.success("Room created successfully!");
+            navigate('/room-waiting', {
+                state: {
+                    roomName: response.name,
+                    roomCode: response.roomCode,
+                    userName: data.username,
+                    isHost: response.host === data.username,
+                    players: response.players
+                }
+            });
+        });
+
         socket.on("connect_error", () => {
             toast.error("Connection error. Please check your internet");
         });
@@ -39,7 +59,7 @@ const JoinRoom = () => {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (!data.roomName.trim() || !data.userName.trim()) {
+        if (!data.roomCode.trim() || !data.username.trim()) {
             toast.error("Please fill in all fields");
             return;
         }
@@ -47,27 +67,7 @@ const JoinRoom = () => {
         setLoading(true);
 
         if (socketRef.current) {
-            socketRef.current.emit('joinRoom', {
-                roomCode: data.roomName,
-                userName: data.userName
-            }, (response: any) => {
-                setLoading(false);
-
-                if (response.success) {
-                    toast.success("Joined room successfully!");
-                    // Navigate to room waiting page with room info
-                    navigate('/room-waiting', {
-                        state: {
-                            roomCode: response.roomCode,
-                            userName: response.userName,
-                            isHost: response.isHost,
-                            players: response.players
-                        }
-                    });
-                } else {
-                    toast.error(response.error || 'Failed to join room');
-                }
-            });
+            socketRef.current.emit('joinRoom', data);
         }
     };
 
@@ -125,9 +125,9 @@ const JoinRoom = () => {
                                 className="bg-transparent border border-white/10 text-white px-4 py-3 text-sm tracking-wider placeholder:text-white/20 outline-none transition-all duration-200
                                             focus:border-[#00ff64]/60 focus:bg-[#00ff64]/5 focus:shadow-[0_0_20px_rgba(0,255,100,0.1)]"
                                 type="text"
-                                value={data.roomName}
+                                value={data.roomCode}
                                 onChange={handleChange}
-                                name="roomName"
+                                name="roomCode"
                                 placeholder="OPERATION_NIGHTFALL"
                                 disabled={loading}
                                 style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
@@ -143,9 +143,9 @@ const JoinRoom = () => {
                                 className="bg-transparent border border-white/10 text-white px-4 py-3 text-sm tracking-wider placeholder:text-white/20 outline-none transition-all duration-200
                                             focus:border-[#00ff64]/60 focus:bg-[#00ff64]/5 focus:shadow-[0_0_20px_rgba(0,255,100,0.1)]"
                                 type="text"
-                                value={data.userName}
+                                value={data.username}
                                 onChange={handleChange}
-                                name="userName"
+                                name="username"
                                 placeholder="GHOST"
                                 disabled={loading}
                                 style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
@@ -169,35 +169,3 @@ const JoinRoom = () => {
 
 export default JoinRoom;
 
-                        <div className="flex flex-col gap-2">
-                            <label className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase flex items-center gap-2">
-                                <span className="inline-block w-1 h-1 rounded-full bg-[#00ff64]" />
-                                Agent Name
-                            </label>
-                            <input
-                                className="bg-transparent border border-white/10 text-white px-4 py-3 text-sm tracking-wider placeholder:text-white/20 outline-none transition-all duration-200
-                                            focus:border-[#00ff64]/60 focus:bg-[#00ff64]/5 focus:shadow-[0_0_20px_rgba(0,255,100,0.1)]"
-                                type="text"
-                                value={data.userName}
-                                onChange={handleChange}
-                                name="userName"
-                                placeholder="GHOST"
-                                style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="mt-2 bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-8 py-4 cursor-pointer
-                                        transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.4)] active:scale-95"
-                            style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))' }}>
-                            Enter in the Arena
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-export default JoinRoom

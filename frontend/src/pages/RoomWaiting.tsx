@@ -1,33 +1,11 @@
-import { Copy, CopyCheck } from "lucide-react";
-import {  useRef, useEffect } from "react";
-import toast from "react-hot-toast";
-import { io, Socket } from "socket.io-client"
+import { useLocation } from "react-router-dom";
+import type { Player } from "../types/types";
 
-const Room = () => {
-    const socketRef = useRef<Socket | null>(null)
+const RoomWaiting = () => {
+    const location = useLocation();
 
-    useEffect(() => {
-        const socket = io(import.meta.env.VITE_API_URL, { 
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
+    const { roomName, roomCode, userName, isHost, players} = location.state;
         
-        socketRef.current = socket;
-        
-        socket.on('connect', ()=>{
-            socket.emit("joinRoom", {room: 'room h'});
-            
-            socket.emit('submit_vote', {room: 'room h', username: "username"})
-        })
-
-        socket.on("connect_error", () => {
-            toast.error("Connection error. Please check your internet")
-        })
-    })
-        
-    
 
     return (
         <div
@@ -90,7 +68,6 @@ const Room = () => {
                     </div>
                 </div>
 
-                {/* ── Divider ── */}
                 <div className="flex items-center gap-4">
                     <div className="h-px flex-1 bg-white/10" />
                     <span className="text-white/20 text-[9px] tracking-[0.3em] uppercase">
@@ -108,9 +85,9 @@ const Room = () => {
                             Active Agents
                         </p>
 
-                        {players.map((player, i) => (
+                        {players.map((player: Player) => (
                             <div
-                                key={i}
+                                key={player.id}
                                 className="flex items-center justify-between border border-white/10 bg-white/2 px-5 py-4 transition-all duration-200 hover:border-white/20 hover:bg-white/4"
                                 style={{
                                     clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))",
@@ -123,7 +100,7 @@ const Room = () => {
                                             clipPath: "polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px))",
                                         }}
                                     >
-                                        {String(i + 1).padStart(2, "0")}
+                                        {String(player.id + 1).padStart(2, "0")}
                                     </div>
 
                                     <div>
@@ -181,9 +158,8 @@ const Room = () => {
                                     className="flex-1 text-white font-black text-lg tracking-[0.3em]"
                                     style={{ fontFamily: "'Arial Black', sans-serif" }}
                                 >
-                                    {roomName}
+                                    {roomCode}
                                 </span>
-                                {!copy ? <Copy color="white" className="cursor-pointer active:scale-75" onClick={handleCopy}/> : <CopyCheck color="white" />}
                             </div>
                         </div>
 
@@ -241,4 +217,4 @@ const Room = () => {
     );
 };
 
-export default Room;
+export default RoomWaiting;

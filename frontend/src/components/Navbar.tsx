@@ -13,7 +13,6 @@ const Navbar = () => {
                     { to: "/", label: "Home" },
                     { to: "/create-room", label: "Create Room" },
                     { to: "/join-room", label: "Join Room" },
-                    { to: "/room", label: "Room" },
                 ].map(({ to, label }) => (
                 <NavLink
                     key={to}

@@ -2,16 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io, Socket } from "socket.io-client";
 import toast from "react-hot-toast";
+import type { socketRoom, User } from "../types/types"
 
-type User = {
-    roomName: string;
-    userName: string;
-};
 
 const CreateRoom = () => {
     const [data, setData] = useState<User>({
         roomName: "",
-        userName: ""
+        username: ""
     });
     const [loading, setLoading] = useState(false);
     const socketRef = useRef<Socket | null>(null);
@@ -27,6 +24,25 @@ const CreateRoom = () => {
 
         socketRef.current = socket;
 
+        socket.on('error', (err: {message: string}) => {
+            setLoading(false);
+            toast.error(err.message || "An error occured while creating the room")
+        })
+
+        socket.on("roomUpdated", (response: socketRoom) => {
+            setLoading(false);
+            toast.success("Room created successfully!");
+            navigate('/room-waiting', {
+                state: {
+                    roomName: response.name,
+                    roomCode: response.roomCode,
+                    userName: data.username,
+                    isHost: response.host === data.username,
+                    players: response.players
+                }
+            });
+        });
+
         socket.on("connect_error", () => {
             toast.error("Connection error. Please check your internet");
         });
@@ -39,7 +55,7 @@ const CreateRoom = () => {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (!data.roomName.trim() || !data.userName.trim()) {
+        if (!data.roomName.trim() || !data.username.trim()) {
             toast.error("Please fill in all fields");
             return;
         }
@@ -47,27 +63,7 @@ const CreateRoom = () => {
         setLoading(true);
 
         if (socketRef.current) {
-            socketRef.current.emit('createRoom', {
-                roomName: data.roomName,
-                userName: data.userName
-            }, (response: { success: boolean; roomCode?: string; userName?: string; isHost?: boolean; players?: []; error?: string }) => {
-                setLoading(false);
-
-                if (response.success) {
-                    toast.success("Room created successfully!");
-                    // Navigate to room waiting page with room info
-                    navigate('/room-waiting', {
-                        state: {
-                            roomCode: response.roomCode,
-                            userName: response.userName,
-                            isHost: response.isHost,
-                            players: response.players
-                        }
-                    });
-                } else {
-                    toast.error(response.error || 'Failed to create room');
-                }
-            });
+            socketRef.current.emit('createRoom', data);
         }
     };
 
@@ -143,9 +139,9 @@ const CreateRoom = () => {
                                 className="bg-transparent border border-white/10 text-white px-4 py-3 text-sm tracking-wider placeholder:text-white/20 outline-none transition-all duration-200
                                             focus:border-[#00ff64]/60 focus:bg-[#00ff64]/5 focus:shadow-[0_0_20px_rgba(0,255,100,0.1)]"
                                 type="text"
-                                value={data.userName}
+                                value={data.username}
                                 onChange={handleChange}
-                                name="userName"
+                                name="username"
                                 placeholder="GHOST"
                                 disabled={loading}
                                 style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
@@ -168,36 +164,3 @@ const CreateRoom = () => {
 };
 
 export default CreateRoom;
-
-//                         <div className="flex flex-col gap-2">
-//                             <label className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase flex items-center gap-2">
-//                                 <span className="inline-block w-1 h-1 rounded-full bg-[#00ff64]" />
-//                                 Agent Name
-//                             </label>
-//                             <input
-//                                 className="bg-transparent border border-white/10 text-white px-4 py-3 text-sm tracking-wider placeholder:text-white/20 outline-none transition-all duration-200
-//                                             focus:border-[#00ff64]/60 focus:bg-[#00ff64]/5 focus:shadow-[0_0_20px_rgba(0,255,100,0.1)]"
-//                                 type="text"
-//                                 value={data.userName}
-//                                 onChange={handleChange}
-//                                 name="userName"
-//                                 placeholder="GHOST"
-//                                 style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
-//                             />
-//                         </div>
-
-//                         <button
-//                             type="submit"
-//                             className="mt-2 bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-8 py-4 cursor-pointer
-//                                         transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.4)] active:scale-95"
-//                             style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))' }}>
-//                             Initialize Room
-//                         </button>
-//                     </form>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// };
-
-// export default CreateRoom;

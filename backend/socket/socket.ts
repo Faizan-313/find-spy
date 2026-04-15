@@ -218,7 +218,7 @@ export const setUpSocket = (server: any) => {
                     isStarted: false,
                     votes: [],
                 };
-
+                
                 socket.join(roomCode);
                 io.to(roomCode).emit("roomUpdated", newRoom);
             } catch (err) {
