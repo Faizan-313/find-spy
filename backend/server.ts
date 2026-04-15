@@ -20,7 +20,7 @@ app.use(
 app.use(express.json())
 app.use(express.static('public'));
 
-const coonected = await dbPool.connect();
+await dbPool.connect();
 
 setUpSocket(server);
 

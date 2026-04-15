@@ -12,8 +12,4 @@ dbPool.on('connect', () =>{
     console.log("Connection pool established with database")
 })
 
-dbPool.on('error', (err) => {
-    console.error("Count not establish connection with database: ", err);
-})
-
 export default dbPool;
