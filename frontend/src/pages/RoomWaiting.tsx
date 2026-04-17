@@ -1,10 +1,93 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { Player } from "../types/types";
+import { io, Socket } from "socket.io-client";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast/headless";
 
 const RoomWaiting = () => {
     const location = useLocation();
 
     const { roomName, roomCode, userName, isHost, players} = location.state;
+    const socketRef = useRef<Socket | null>(null);
+    const [roomPlayers, setRoomPlayers] = useState<Player[]>(players);
+    const [isLeaving, setIsLeaving] = useState(false);
+    const navigation = useNavigate();
+    
+    useEffect(() => {
+        const socket = io(import.meta.env.VITE_API_URL, {
+            transports: ["websocket"],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+
+        socketRef.current = socket;
+
+        socket.on("connect", () => {
+            socket.emit("joinRoom", {
+                roomCode,
+                username: userName
+            });
+        });
+
+        socket.on("roomUpdated", (roomData: { players?: Player[] }) => {
+            if (roomData?.players) {
+                setRoomPlayers(roomData.players);
+            }
+        });
+
+        socket.on("error", (err: { message?: string }) => {
+            if (err?.message) {
+                toast.error(err.message);
+            }
+        });
+
+        socket.on("roomEnded", (msg) => {
+            toast.error(msg.message || "The room has been closed by the host");
+            navigation("/create-room");
+        });
+
+        socket.on("leftRoom", () => {
+            setIsLeaving(false);
+            navigation("/create-room");
+        });
+
+        socket.on("connect_error", () => {
+            toast.error("Connection error. Please check your internet");
+        });
+
+        return () => {
+            socket.off("connect");
+            socket.off("roomUpdated");
+            socket.off("error");
+            socket.off("roomEnded");
+            socket.off("leftRoom");
+            socket.off("connect_error");
+            socket.disconnect();
+        };
+    }, [navigation, roomCode, userName]);
+
+
+    const handleLeave = () => {
+        if (isLeaving) return;
+
+        const data = {
+            roomCode,
+            username: userName
+        }
+        if (!socketRef.current) {
+            navigation("/create-room");
+            return;
+        }
+
+        setIsLeaving(true);
+        socketRef.current.emit('leaveRoom', data);
+
+        setTimeout(() => {
+            setIsLeaving(false);
+            navigation("/create-room");
+        }, 3000);
+    }
         
 
     return (
@@ -71,7 +154,7 @@ const RoomWaiting = () => {
                 <div className="flex items-center gap-4">
                     <div className="h-px flex-1 bg-white/10" />
                     <span className="text-white/20 text-[9px] tracking-[0.3em] uppercase">
-                        Agents Online · {players.length}/8
+                        Agents Online · {roomPlayers.length}/8
                     </span>
                     <div className="h-px flex-1 bg-white/10" />
                 </div>
@@ -85,7 +168,7 @@ const RoomWaiting = () => {
                             Active Agents
                         </p>
 
-                        {players.map((player: Player) => (
+                        {roomPlayers.map((player: Player, index: number) => (
                             <div
                                 key={player.id}
                                 className="flex items-center justify-between border border-white/10 bg-white/2 px-5 py-4 transition-all duration-200 hover:border-white/20 hover:bg-white/4"
@@ -100,7 +183,7 @@ const RoomWaiting = () => {
                                             clipPath: "polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px))",
                                         }}
                                     >
-                                        {String(player.id + 1).padStart(2, "0")}
+                                        {String(index + 1).padStart(2, "0")}
                                     </div>
 
                                     <div>
@@ -127,7 +210,7 @@ const RoomWaiting = () => {
                             </div>
                         ))}
 
-                        {Array.from({ length: Math.max(0, 4 - players.length) }).map((_, i) => (
+                        {Array.from({ length: Math.max(0, 4 - roomPlayers.length) }).map((_, i) => (
                             <div
                                 key={`empty-${i}`}
                                 className="flex items-center gap-4 border border-white/5 border-dashed px-5 py-4"
@@ -176,7 +259,7 @@ const RoomWaiting = () => {
                             <ul className="flex flex-col gap-3">
                                 {[
                                     { label: "Mode", value: "Classic" },
-                                    { label: "Agents", value: `${players.length} / 8` },
+                                    { label: "Agents", value: `${roomPlayers.length} / 8` },
                                     { label: "Status", value: "Lobby" },
                                 ].map((item) => (
                                     <li key={item.label} className="flex items-center justify-between">
@@ -206,8 +289,10 @@ const RoomWaiting = () => {
                             <button
                                 className="border border-white/10 text-white/40 hover:text-white hover:border-white/30 font-bold text-sm tracking-[0.2em] uppercase px-6 py-3 cursor-pointer transition-all duration-200 active:scale-95"
                                 style={{ clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}
+                                onClick={handleLeave}
+                                disabled={isLeaving}
                             >
-                                Leave Room
+                                {isLeaving ? "Leaving..." : "Leave Room"}
                             </button>
                         </div>
                     </div>

@@ -10,9 +10,15 @@ const CreateRoom = () => {
         roomName: "",
         username: ""
     });
+
     const [loading, setLoading] = useState(false);
     const socketRef = useRef<Socket | null>(null);
+    const latestDataRef = useRef(data);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        latestDataRef.current = data;
+    }, [data]);
 
     useEffect(() => {
         const socket = io(import.meta.env.VITE_API_URL, {
@@ -24,6 +30,7 @@ const CreateRoom = () => {
 
         socketRef.current = socket;
 
+
         socket.on('error', (err: {message: string}) => {
             setLoading(false);
             toast.error(err.message || "An error occured while creating the room")
@@ -32,12 +39,13 @@ const CreateRoom = () => {
         socket.on("roomUpdated", (response: socketRoom) => {
             setLoading(false);
             toast.success("Room created successfully!");
+            const currentUsername = latestDataRef.current.username;
             navigate('/room-waiting', {
                 state: {
                     roomName: response.name,
                     roomCode: response.roomCode,
-                    userName: data.username,
-                    isHost: response.host === data.username,
+                    userName: currentUsername,
+                    isHost: response.host === currentUsername,
                     players: response.players
                 }
             });
@@ -48,9 +56,12 @@ const CreateRoom = () => {
         });
 
         return () => {
+            socket.off("error");
+            socket.off("roomUpdated");
             socket.off('connect_error');
+            socket.disconnect();
         };
-    }, []);
+    }, [navigate]);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

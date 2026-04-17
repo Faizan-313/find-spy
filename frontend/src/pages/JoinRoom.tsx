@@ -16,7 +16,12 @@ const JoinRoom = () => {
     });
     const [loading, setLoading] = useState(false);
     const socketRef = useRef<Socket | null>(null);
+    const latestDataRef = useRef(data);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        latestDataRef.current = data;
+    }, [data]);
 
     useEffect(() => {
         const socket = io(import.meta.env.VITE_API_URL, {
@@ -35,13 +40,14 @@ const JoinRoom = () => {
 
         socket.on("roomUpdated", (response: socketRoom) => {
             setLoading(false);
-            toast.success("Room created successfully!");
+            toast.success("Joined room successfully!");
+            const currentUsername = latestDataRef.current.username;
             navigate('/room-waiting', {
                 state: {
                     roomName: response.name,
                     roomCode: response.roomCode,
-                    userName: data.username,
-                    isHost: response.host === data.username,
+                    userName: currentUsername,
+                    isHost: response.host === currentUsername,
                     players: response.players
                 }
             });
@@ -52,9 +58,12 @@ const JoinRoom = () => {
         });
 
         return () => {
-            socket.off('connect_error');
+            socket.off("error");
+            socket.off("roomUpdated");
+            socket.off("connect_error");
+            socket.disconnect();
         };
-    }, []);
+    }, [navigate]);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

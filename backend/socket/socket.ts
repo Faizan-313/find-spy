@@ -125,16 +125,28 @@ async function handlePlayerLeave(
     const room = roomResult.rows[0];
 
     if (room.host === username) {
-        // Host leaving mark room ended and evict all sockets
+        // Host leaving: mark room ended, remove all players, and evict all sockets
         await dbPool.query(
             "UPDATE room SET is_ended = TRUE, is_started = FALSE, is_voting_started = FALSE WHERE id = $1",
             [room.id]
         );
+        await dbPool.query("DELETE FROM vote WHERE room_id = $1", [room.id]);
+        await dbPool.query("DELETE FROM player WHERE room_id = $1", [room.id]);
         io.to(roomCode).emit("roomEnded", { message: "The host has left. The room has been closed." });
+
+        // Clear socket data for every socket currently in the room and evict them.
         const sockets = await io.in(roomCode).fetchSockets();
-        for (const s of sockets) s.leave(roomCode);
+        for (const s of sockets) {
+            s.data.username = undefined;
+            s.data.roomCode = undefined;
+            s.leave(roomCode);
+        }
     } else {
         // Regular player remove from DB and notify remaining players
+        await dbPool.query(
+            "DELETE FROM vote WHERE room_id = $1 AND voter_id IN (SELECT id FROM player WHERE name = $2 AND room_id = $1)",
+            [room.id, username]
+        );
         await dbPool.query(
             "DELETE FROM player WHERE name = $1 AND room_id = $2",
             [username, room.id]
@@ -145,6 +157,20 @@ async function handlePlayerLeave(
         io.to(roomCode).emit("roomUpdated", updatedRoom);
     }
 }
+
+// Tracks users who disconnected but may be navigating between pages.
+const pendingLeaves = new Map<string, NodeJS.Timeout>();
+
+const pendingLeaveKey = (username: string, roomCode: string) => `${username}::${roomCode}`;
+
+const cancelPendingLeave = (username: string, roomCode: string) => {
+    const key = pendingLeaveKey(username, roomCode);
+    const timer = pendingLeaves.get(key);
+    if (timer) {
+        clearTimeout(timer);
+        pendingLeaves.delete(key);
+    }
+};
 
 export const setUpSocket = (server: any) => {
     const io = new Server(server, {
@@ -207,6 +233,7 @@ export const setUpSocket = (server: any) => {
                 // Store on socket for disconnect cleanup
                 socket.data.username = data.username;
                 socket.data.roomCode = roomCode;
+                cancelPendingLeave(data.username, roomCode);
 
                 const newRoom: socketRoom = {
                     id: roomId,
@@ -271,7 +298,13 @@ export const setUpSocket = (server: any) => {
                 );
 
                 if (duplicateResult.rows.length > 0) {
-                    socket.emit("error", { message: "Username is already taken in this room" });
+                    // Allow the same username to rejoin the room from a fresh socket connection.
+                    socket.data.username = data.username;
+                    socket.data.roomCode = data.roomCode;
+                    cancelPendingLeave(data.username, data.roomCode);
+                    socket.join(room.room_code);
+                    const currentRoom = await fetchRoomState(room.id);
+                    io.to(room.room_code).emit("roomUpdated", currentRoom);
                     return;
                 }
 
@@ -283,6 +316,7 @@ export const setUpSocket = (server: any) => {
                 // Store on socket for disconnect cleanup
                 socket.data.username = data.username;
                 socket.data.roomCode = data.roomCode;
+                cancelPendingLeave(data.username, data.roomCode);
 
                 const updatedRoom = await fetchRoomState(room.id);
 
@@ -514,30 +548,54 @@ export const setUpSocket = (server: any) => {
         socket.on("leaveRoom", async (data: { roomCode: string; username: string }) => {
             if (!data.roomCode || !data.username) {
                 socket.emit("error", { message: "Room code and username are required" });
+                socket.emit("leftRoom", { message: "Left room" });
                 return;
             }
+
+            // Prevent duplicate leave handling on disconnect after explicit leave.
+            socket.data.username = undefined;
+            socket.data.roomCode = undefined;
+            cancelPendingLeave(data.username, data.roomCode);
 
             try {
                 await handlePlayerLeave(socket, io, data.roomCode, data.username);
             } catch (err) {
                 console.error("leaveRoom error:", err);
-                socket.emit("error", { message: "Internal server error" });
+            } finally {
+                socket.emit("leftRoom", { message: "Left room successfully" });
             }
         });
 
-        socket.on("disconnect", async () => {
+        socket.on("disconnect", () => {
             console.log("Client disconnected:", socket.id);
             const { username, roomCode } = socket.data as {
                 username?: string;
                 roomCode?: string;
             };
-            if (username && roomCode) {
+            if (!username || !roomCode) return;
+
+            // Schedule a delayed leave; any fresh socket from the same user in the
+            // same room within the grace window cancels this via cancelPendingLeave.
+            const key = pendingLeaveKey(username, roomCode);
+            const existing = pendingLeaves.get(key);
+            if (existing) clearTimeout(existing);
+
+            const timer = setTimeout(async () => {
+                pendingLeaves.delete(key);
                 try {
+                    const stillConnected = Array.from(io.sockets.sockets.values()).some(
+                        (connectedSocket: any) =>
+                            connectedSocket.data?.username === username &&
+                            connectedSocket.data?.roomCode === roomCode
+                    );
+                    if (stillConnected) return;
                     await handlePlayerLeave(socket, io, roomCode, username);
                 } catch (err) {
                     console.error("disconnect cleanup error:", err);
                 }
-            }
+            }, 5000);
+
+            pendingLeaves.set(key, timer);
         });
     });
 
