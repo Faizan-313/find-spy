@@ -9,8 +9,8 @@ async function fetchRoomState(roomId: string): Promise<socketRoom | null> {
     if (!roomResult.rows.length) return null;
     const room = roomResult.rows[0];
 
-    const playersResult = await dbPool.query<{ id: string; name: string; is_host: boolean }>(
-        "SELECT id, name, is_host FROM player WHERE room_id = $1",
+    const playersResult = await dbPool.query<{ id: string; name: string; is_host: boolean; is_spy: boolean; word: string | null }>(
+        "SELECT id, name, is_host, is_spy, word FROM player WHERE room_id = $1",
         [roomId]
     );
 
@@ -61,6 +61,8 @@ async function fetchRoomState(roomId: string): Promise<socketRoom | null> {
             id: p.id,
             name: p.name,
             isHost: p.is_host,
+            isSpy: p.is_spy,
+            word: p.word ? p.word : undefined,
         })),
         isVotingStarted: room.is_voting_started,
         isStarted: room.is_started,

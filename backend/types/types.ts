@@ -2,6 +2,19 @@ interface Player {
     id: string;
     name: string;
     isHost: boolean;
+    isSpy?: boolean;
+    word?: string;
+}
+
+interface dbPlayer {
+    id: string;
+    name: string;
+    room_id: string;
+    is_host: boolean;
+    is_spy: boolean;
+    word: string | null;
+    created_at: Date;
+    updated_at: Date;
 }
 
 interface Vote {
@@ -32,4 +45,4 @@ interface dbRoom {
     updated_at: Date;
 }
 
-export type { Player, Vote, socketRoom, dbRoom}
+export type { Player, Vote, socketRoom, dbRoom, dbPlayer}

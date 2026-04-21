@@ -2,6 +2,8 @@ interface Player {
     id: string;
     name: string;
     isHost: boolean;
+    isSpy?: boolean;
+    word?: string;
 }
 
 interface Vote {
@@ -37,4 +39,62 @@ type User = {
     username: string;
 };
 
-export type { Player, Vote, socketRoom, dbRoom, User };
+type WinnerType = "Spy" | "Agents";
+
+type GameResultPayload = {
+    winnerType: WinnerType;
+    spy: Player | null;
+    votedOut: Player | null;
+    tie: boolean;
+    winners: Player[];
+    voteCounts: { player: Player; count: number }[];
+    message?: string;
+};
+
+type ResultOverlayProps = {
+    result: GameResultPayload;
+    didWin: boolean;
+    userName: string;
+    isHost: boolean;
+    onReplay: () => void;
+    onClose: () => void;
+};
+
+type GameState = "discussion" | "voting" | "ended";
+
+type ChatMessage = { agent: string; msg: string; time: string };
+
+type HistoryEntry = {
+    event: string;
+    time: string;
+    type: "system" | "phase" | "join" | "leave";
+};
+
+type VotePanelProps = {
+    players: Player[];
+    currentPlayerId?: string | number;
+    gameState: GameState;
+    isVotingPhase: boolean;
+    votingTimer: number;
+    selectedVote: string;
+    hasSubmittedVote: boolean;
+    voteCountByPlayerId: Map<string, number>;
+    onSelect: (playerId: string) => void;
+    onSubmit: () => void;
+};
+
+
+export type {
+    Player,
+    Vote,
+    socketRoom,
+    dbRoom,
+    User,
+    GameResultPayload,
+    ResultOverlayProps,
+    GameState,
+    ChatMessage,
+    HistoryEntry,
+    WinnerType,
+    VotePanelProps,
+};

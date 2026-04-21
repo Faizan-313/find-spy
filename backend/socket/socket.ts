@@ -1,9 +1,11 @@
 import { Server } from "socket.io";
 import dbPool from "../database/db.config";
-import type { socketRoom, dbRoom} from "../types/types"
+import type { socketRoom, dbRoom, Player} from "../types/types"
 import generateRoomCode from "./helpers/generateRoomCode" 
 import fetchRoomState from "./helpers/fetchRoomState"
 import { handlePlayerLeave, cancelPendingLeave, pendingLeaves, pendingLeaveKey } from "./helpers/playerLeave"
+import generateWords from "./helpers/generateWords";
+import resolveGameResult from "./helpers/resolveGameResult";
 
 export const setUpSocket = (server: any) => {
     const io = new Server(server, {
@@ -104,12 +106,34 @@ export const setUpSocket = (server: any) => {
 
                 const room = roomResult.rows[0];
 
-                if (room.is_started) {
-                    socket.emit("error", { message: "Game has already started please wait!" });
-                    return;
-                }
                 if (room.is_ended) {
                     socket.emit("error", { message: "Game has already ended" });
+                    return;
+                }
+
+                // Allow an existing player (by username) to rejoin at any time, even
+                // after the game has started. 
+                const duplicateResult = await dbPool.query(
+                    "SELECT id FROM player WHERE room_id = $1 AND name = $2 LIMIT 1",
+                    [room.id, data.username]
+                );
+
+                if (duplicateResult.rows.length > 0) {
+                    socket.data.username = data.username;
+                    socket.data.roomCode = data.roomCode;
+
+                    cancelPendingLeave(data.username, data.roomCode);
+                    socket.join(room.room_code);
+
+                    const currentRoom = await fetchRoomState(room.id);
+
+                    io.to(room.room_code).emit("roomUpdated", currentRoom);
+                    return;
+                }
+
+                // Only block brand new players from joining a started game.
+                if (room.is_started) {
+                    socket.emit("error", { message: "Game has already started please wait!" });
                     return;
                 }
 
@@ -120,25 +144,6 @@ export const setUpSocket = (server: any) => {
 
                 if (parseInt(countResult.rows[0].count, 10) >= 8) {
                     socket.emit("error", { message: "Room is full" });
-                    return;
-                }
-
-                const duplicateResult = await dbPool.query(
-                    "SELECT id FROM player WHERE room_id = $1 AND name = $2 LIMIT 1",
-                    [room.id, data.username]
-                );
-
-                if (duplicateResult.rows.length > 0) {
-                    // Allow the same username to rejoin the room from a fresh socket connection.
-                    socket.data.username = data.username;
-                    socket.data.roomCode = data.roomCode;
-
-                    cancelPendingLeave(data.username, data.roomCode);
-                    socket.join(room.room_code);
-
-                    const currentRoom = await fetchRoomState(room.id);
-
-                    io.to(room.room_code).emit("roomUpdated", currentRoom);
                     return;
                 }
 
@@ -197,15 +202,46 @@ export const setUpSocket = (server: any) => {
                     return;
                 }
 
+                const playersResult = await dbPool.query<{ id: string; name: string; is_host: boolean }>(
+                    "SELECT id, name, is_host FROM player WHERE room_id = $1",
+                    [room.id]
+                );
+
+                if (playersResult.rows.length < 2) {
+                    socket.emit("error", { message: "Need at least 2 players to start the game" });
+                    return;
+                }
+
+                const words: {word1: string, word2: string} = generateWords();
+                const spyPlayerIndex = Math.floor(Math.random() * playersResult.rows.length);
+
                 await dbPool.query(
                     "UPDATE room SET is_started = TRUE WHERE id = $1",
                     [room.id]
                 );
 
+                // Update all players with spy and word info
+                for (let i = 0; i < playersResult.rows.length; i++) {
+                    const isSpy = i === spyPlayerIndex;
+                    const word = isSpy ? words.word1 : words.word2;
+                    
+                    await dbPool.query(
+                        "UPDATE player SET is_spy = $1, word = $2 WHERE id = $3",
+                        [isSpy, word, playersResult.rows[i].id]
+                    );
+                }
+
+                // Fetch updated room state
                 const updatedRoom = await fetchRoomState(room.id);
 
-                io.to(data.roomCode).emit("startGame", { message: "Game has started!" });
-                io.to(data.roomCode).emit("roomUpdated", updatedRoom);
+                if (updatedRoom) {
+                    io.to(data.roomCode).emit("gameStarted", {
+                        message: "Game has started!",
+                        players: updatedRoom.players,
+                    });
+                }
+
+            
             } catch (err) {
                 console.error("startGame error:", err);
                 socket.emit("error", { message: "Internal server error" });
@@ -253,7 +289,7 @@ export const setUpSocket = (server: any) => {
 
                 const updatedRoom = await fetchRoomState(room.id);
 
-                io.to(data.roomCode).emit("startVoting", { message: "Voting has started!" });
+                io.to(data.roomCode).emit("votingStarted", { message: "Voting has started!" });
                 io.to(data.roomCode).emit("roomUpdated", updatedRoom);
             } catch (err) {
                 console.error("startVoting error:", err);
@@ -363,6 +399,11 @@ export const setUpSocket = (server: any) => {
                     return;
                 }
 
+                // Tally votes, decide winners, persist into the `winners` table.
+                const result = await resolveGameResult(room.id);
+
+                // Close voting 
+                // reveals the winner.
                 await dbPool.query(
                     "UPDATE room SET is_voting_started = FALSE WHERE id = $1",
                     [room.id]
@@ -372,8 +413,89 @@ export const setUpSocket = (server: any) => {
 
                 io.to(data.roomCode).emit("endVoting", { message: "Voting has ended!" });
                 io.to(data.roomCode).emit("roomUpdated", updatedRoom);
+                io.to(data.roomCode).emit("gameResult", {
+                    winnerType: result.winnerType,
+                    spy: result.spy,
+                    votedOut: result.votedOut,
+                    tie: result.tie,
+                    winners: result.winners,
+                    voteCounts: result.voteCounts,
+                    message:
+                        result.winnerType === "Agents"
+                            ? "Agents win! The spy has been exposed."
+                            : "The spy wins! Identity concealed.",
+                });
             } catch (err) {
                 console.error("endVoting error:", err);
+                socket.emit("error", { message: "Internal server error" });
+            }
+        });
+
+        socket.on("restartGame", async (data: { roomCode: string; username: string }) => {
+            if (!data.roomCode || !data.username) {
+                socket.emit("error", { message: "Room code and username are required" });
+                return;
+            }
+
+            try {
+                const roomResult = await dbPool.query<dbRoom>(
+                    "SELECT * FROM room WHERE room_code = $1 LIMIT 1",
+                    [data.roomCode]
+                );
+
+                if (!roomResult.rows.length) {
+                    socket.emit("error", { message: "Room not found" });
+                    return;
+                }
+
+                const room = roomResult.rows[0];
+
+                if (room.host !== data.username) {
+                    socket.emit("error", { message: "Only the host can start a new mission" });
+                    return;
+                }
+
+                const playersResult = await dbPool.query<{ id: string; name: string; is_host: boolean }>(
+                    "SELECT id, name, is_host FROM player WHERE room_id = $1",
+                    [room.id]
+                );
+
+                if (playersResult.rows.length < 2) {
+                    socket.emit("error", { message: "Need at least 2 players to start a new mission" });
+                    return;
+                }
+
+                // Wipe previous round's votes; keep the winners audit log intact.
+                await dbPool.query("DELETE FROM vote WHERE room_id = $1", [room.id]);
+
+                const words: { word1: string; word2: string } = generateWords();
+                const spyPlayerIndex = Math.floor(Math.random() * playersResult.rows.length);
+
+                for (let i = 0; i < playersResult.rows.length; i++) {
+                    const isSpy = i === spyPlayerIndex;
+                    const word = isSpy ? words.word1 : words.word2;
+                    await dbPool.query(
+                        "UPDATE player SET is_spy = $1, word = $2 WHERE id = $3",
+                        [isSpy, word, playersResult.rows[i].id]
+                    );
+                }
+
+                await dbPool.query(
+                    "UPDATE room SET is_started = TRUE, is_voting_started = FALSE, is_ended = FALSE WHERE id = $1",
+                    [room.id]
+                );
+
+                const updatedRoom = await fetchRoomState(room.id);
+
+                if (updatedRoom) {
+                    io.to(data.roomCode).emit("gameStarted", {
+                        message: "New mission started — new words are in play!",
+                        players: updatedRoom.players,
+                    });
+                    io.to(data.roomCode).emit("roomUpdated", updatedRoom);
+                }
+            } catch (err) {
+                console.error("restartGame error:", err);
                 socket.emit("error", { message: "Internal server error" });
             }
         });
@@ -397,6 +519,46 @@ export const setUpSocket = (server: any) => {
                 console.error("leaveRoom error:", err);
             } finally {
                 socket.emit("leftRoom", { message: "Left room successfully" });
+            }
+        });
+
+        socket.on("endGame", async (data: { roomCode: string; username: string }) => {
+            if (!data.roomCode || !data.username) {
+                socket.emit("error", { message: "Room code and username are required" });
+                return;
+            }
+
+            try {
+                const roomResult = await dbPool.query<dbRoom>(
+                    "SELECT * FROM room WHERE room_code = $1 LIMIT 1",
+                    [data.roomCode]
+                );
+
+                if (!roomResult.rows.length) {
+                    socket.emit("error", { message: "Room not found" });
+                    return;
+                }
+
+                const room = roomResult.rows[0];
+
+                if (room.host !== data.username) {
+                    socket.emit("error", { message: "Only the host can end the game" });
+                    return;
+                }
+
+                // End the game
+                await dbPool.query(
+                    "UPDATE room SET is_ended = TRUE WHERE id = $1",
+                    [room.id]
+                );
+
+                io.to(data.roomCode).emit("gameEnded", {
+                    message: "The game has ended!"
+                });
+
+            } catch (err) {
+                console.error("endGame error:", err);
+                socket.emit("error", { message: "Internal server error" });
             }
         });
 

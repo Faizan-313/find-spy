@@ -52,6 +52,18 @@ const RoomWaiting = () => {
             navigation("/create-room");
         });
 
+        socket.on("gameStarted", () => {
+            toast.success("Mission is starting!");
+            navigation("/game", {
+                state: {
+                    roomCode,
+                    userName,
+                    roomName,
+                    players: roomPlayers,
+                }
+            })
+        })
+
         socket.on("connect_error", () => {
             toast.error("Connection error. Please check your internet");
         });
@@ -62,10 +74,11 @@ const RoomWaiting = () => {
             socket.off("error");
             socket.off("roomEnded");
             socket.off("leftRoom");
+            socket.off("gameStarted");
             socket.off("connect_error");
             socket.disconnect();
         };
-    }, [navigation, roomCode, userName]);
+    }, [navigation, roomCode, userName, roomName]);
 
 
     const handleLeave = () => {
@@ -87,6 +100,11 @@ const RoomWaiting = () => {
             setIsLeaving(false);
             navigation("/create-room");
         }, 3000);
+    }
+
+    const handleLaunchGame = () => {
+        if(!socketRef.current) return;
+        socketRef.current.emit("startGame", { roomCode, username: userName });
     }
         
 
@@ -159,7 +177,6 @@ const RoomWaiting = () => {
                     <div className="h-px flex-1 bg-white/10" />
                 </div>
 
-                {/* ── Main Grid ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     <div className="lg:col-span-2 flex flex-col gap-3">
@@ -275,6 +292,7 @@ const RoomWaiting = () => {
                                 <button
                                     className="bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-6 py-4 cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.3)] active:scale-95"
                                     style={{ clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}
+                                    onClick={handleLaunchGame}
                                 >
                                     Launch Mission
                                 </button>

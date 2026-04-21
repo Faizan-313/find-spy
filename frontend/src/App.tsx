@@ -7,6 +7,7 @@ import Footer from "./components/Footer"
 import Room from "./pages/RoomWaiting"
 import { Toaster } from "react-hot-toast"
 import RoomWaiting from "./pages/RoomWaiting"
+import Game from "./pages/GameSection/Game"
 
 function AppContent(){
   return(
@@ -16,6 +17,7 @@ function AppContent(){
       <Route path="/join-room" element={<JoinRoom />} />
       <Route path="/room-waiting" element={<RoomWaiting />} />
       <Route path="/room" element={<Room />} />
+      <Route path="/game" element={<Game />} />
     </Routes>
   )
 }

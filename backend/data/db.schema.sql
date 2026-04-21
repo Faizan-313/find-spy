@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS player (
     room_id     INTEGER      NOT NULL REFERENCES room (id) ON DELETE CASCADE,
     is_host     BOOLEAN      NOT NULL DEFAULT FALSE,
     is_spy      BOOLEAN      NOT NULL DEFAULT FALSE,
+    word        VARCHAR(255),
     created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (name, room_id)
@@ -67,3 +68,13 @@ CREATE INDEX IF NOT EXISTS idx_vote_votee_id  ON vote (votee_id);
 CREATE OR REPLACE TRIGGER set_vote_updated_at
 BEFORE UPDATE ON vote
 FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+
+CREATE TABLE IF NOT EXISTS winners (
+    id          INTEGER   GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    room_id     INTEGER   NOT NULL REFERENCES room (id) ON DELETE CASCADE,
+    winner_id   INTEGER   NOT NULL REFERENCES player (id) ON DELETE CASCADE,
+    winner_type VARCHAR(50) NOT NULL, -- 'Spy', 'Agents', 'Draw'
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_winners_room_id ON winners (room_id);
