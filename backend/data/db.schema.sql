@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS player (
     is_spy      BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     UNIQUE (name, room_id)
 );
 
@@ -55,8 +54,6 @@ CREATE TABLE IF NOT EXISTS vote (
     room_id     INTEGER   NOT NULL REFERENCES room   (id) ON DELETE CASCADE,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    -- one vote per player per room
     UNIQUE (voter_id, room_id),
 
     -- a player cannot vote for themselves

@@ -63,7 +63,7 @@ const CreateRoom = () => {
         };
     }, [navigate]);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (!data.roomName.trim() || !data.username.trim()) {

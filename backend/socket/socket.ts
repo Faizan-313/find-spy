@@ -1,176 +1,9 @@
 import { Server } from "socket.io";
 import dbPool from "../database/db.config";
-
-interface Player {
-    id: string;
-    name: string;
-    isHost: boolean;
-}
-
-interface Vote {
-    voteGivenTo: Player;
-    voteGivenBy: Player[];
-}
-
-interface socketRoom {
-    id: string;
-    roomCode: string;
-    name: string;
-    host: string;
-    players: Player[];
-    isVotingStarted?: boolean;
-    isStarted?: boolean;
-    votes: Vote[];
-}
-
-interface dbRoom {
-    id: string;
-    name: string;
-    host: string;
-    room_code: string;
-    is_voting_started: boolean;
-    is_ended: boolean;
-    is_started: boolean;
-    created_at: Date;
-    updated_at: Date;
-}
-
-const generateRoomCode = (roomName: string, username: string): string => {
-    return (
-        roomName.toUpperCase() +
-        username.slice(0, 2).toUpperCase() +
-        Math.floor(1000 * Math.random() + 38).toString()
-    );
-};
-
-async function fetchRoomState(roomId: string): Promise<socketRoom | null> {
-    const roomResult = await dbPool.query<dbRoom>(
-        "SELECT * FROM room WHERE id = $1 LIMIT 1",
-        [roomId]
-    );
-    if (!roomResult.rows.length) return null;
-    const room = roomResult.rows[0];
-
-    const playersResult = await dbPool.query<{ id: string; name: string; is_host: boolean }>(
-        "SELECT id, name, is_host FROM player WHERE room_id = $1",
-        [roomId]
-    );
-
-    const votesResult = await dbPool.query<{
-        voter_id: string;
-        voter_name: string;
-        voter_is_host: boolean;
-        votee_id: string;
-        votee_name: string;
-        votee_is_host: boolean;
-    }>(
-        `SELECT
-            voter.id      AS voter_id,
-            voter.name    AS voter_name,
-            voter.is_host AS voter_is_host,
-            votee.id      AS votee_id,
-            votee.name    AS votee_name,
-            votee.is_host AS votee_is_host
-        FROM vote v
-        JOIN player voter ON voter.id = v.voter_id
-        JOIN player votee ON votee.id = v.votee_id
-        WHERE v.room_id = $1`,
-        [roomId]
-    );
-
-    // Group individual vote rows by votee
-    const votesMap = new Map<string, Vote>();
-    for (const row of votesResult.rows) {
-        if (!votesMap.has(row.votee_id)) {
-            votesMap.set(row.votee_id, {
-                voteGivenTo: { id: row.votee_id, name: row.votee_name, isHost: row.votee_is_host },
-                voteGivenBy: [],
-            });
-        }
-        votesMap.get(row.votee_id)!.voteGivenBy.push({
-            id: row.voter_id,
-            name: row.voter_name,
-            isHost: row.voter_is_host,
-        });
-    }
-
-    return {
-        id: room.id,
-        roomCode: room.room_code,
-        name: room.name,
-        host: room.host,
-        players: playersResult.rows.map((p) => ({
-            id: p.id,
-            name: p.name,
-            isHost: p.is_host,
-        })),
-        isVotingStarted: room.is_voting_started,
-        isStarted: room.is_started,
-        votes: Array.from(votesMap.values()),
-    };
-}
-
-async function handlePlayerLeave(
-    socket: any,
-    io: Server,
-    roomCode: string,
-    username: string
-): Promise<void> {
-    const roomResult = await dbPool.query<dbRoom>(
-        "SELECT * FROM room WHERE room_code = $1 LIMIT 1",
-        [roomCode]
-    );
-    if (!roomResult.rows.length) return;
-
-    const room = roomResult.rows[0];
-
-    if (room.host === username) {
-        // Host leaving: mark room ended, remove all players, and evict all sockets
-        await dbPool.query(
-            "UPDATE room SET is_ended = TRUE, is_started = FALSE, is_voting_started = FALSE WHERE id = $1",
-            [room.id]
-        );
-        await dbPool.query("DELETE FROM vote WHERE room_id = $1", [room.id]);
-        await dbPool.query("DELETE FROM player WHERE room_id = $1", [room.id]);
-        io.to(roomCode).emit("roomEnded", { message: "The host has left. The room has been closed." });
-
-        // Clear socket data for every socket currently in the room and evict them.
-        const sockets = await io.in(roomCode).fetchSockets();
-        for (const s of sockets) {
-            s.data.username = undefined;
-            s.data.roomCode = undefined;
-            s.leave(roomCode);
-        }
-    } else {
-        // Regular player remove from DB and notify remaining players
-        await dbPool.query(
-            "DELETE FROM vote WHERE room_id = $1 AND voter_id IN (SELECT id FROM player WHERE name = $2 AND room_id = $1)",
-            [room.id, username]
-        );
-        await dbPool.query(
-            "DELETE FROM player WHERE name = $1 AND room_id = $2",
-            [username, room.id]
-        );
-        socket.leave(roomCode);
-
-        const updatedRoom = await fetchRoomState(room.id);
-        io.to(roomCode).emit("roomUpdated", updatedRoom);
-    }
-}
-
-// Tracks users who disconnected but may be navigating between pages.
-const pendingLeaves = new Map<string, NodeJS.Timeout>();
-
-const pendingLeaveKey = (username: string, roomCode: string) => `${username}::${roomCode}`;
-
-const cancelPendingLeave = (username: string, roomCode: string) => {
-    const key = pendingLeaveKey(username, roomCode);
-    const timer = pendingLeaves.get(key);
-    if (timer) {
-        clearTimeout(timer);
-        pendingLeaves.delete(key);
-    }
-};
+import type { socketRoom, dbRoom} from "../types/types"
+import generateRoomCode from "./helpers/generateRoomCode" 
+import fetchRoomState from "./helpers/fetchRoomState"
+import { handlePlayerLeave, cancelPendingLeave, pendingLeaves, pendingLeaveKey } from "./helpers/playerLeave"
 
 export const setUpSocket = (server: any) => {
     const io = new Server(server, {
@@ -191,15 +24,13 @@ export const setUpSocket = (server: any) => {
             }
 
             try {
+                //check if this user is already hosting an active room
                 const existingRoomResult = await dbPool.query<{ id: string; is_ended: boolean }>(
                     "SELECT id, is_ended FROM room WHERE host = $1 ORDER BY created_at DESC LIMIT 1",
                     [data.username]
                 );
 
-                if (
-                    existingRoomResult.rows.length > 0 &&
-                    existingRoomResult.rows[0].is_ended === false
-                ) {
+                if (existingRoomResult.rows.length > 0 && existingRoomResult.rows[0].is_ended === false) {
                     socket.emit("error", {
                         message: "You are already hosting a live room. Please end that room before creating a new one.",
                     });
@@ -274,7 +105,7 @@ export const setUpSocket = (server: any) => {
                 const room = roomResult.rows[0];
 
                 if (room.is_started) {
-                    socket.emit("error", { message: "Game has already started" });
+                    socket.emit("error", { message: "Game has already started please wait!" });
                     return;
                 }
                 if (room.is_ended) {
@@ -287,7 +118,7 @@ export const setUpSocket = (server: any) => {
                     [room.id]
                 );
 
-                if (parseInt(countResult.rows[0].count, 10) >= 10) {
+                if (parseInt(countResult.rows[0].count, 10) >= 8) {
                     socket.emit("error", { message: "Room is full" });
                     return;
                 }
@@ -301,9 +132,12 @@ export const setUpSocket = (server: any) => {
                     // Allow the same username to rejoin the room from a fresh socket connection.
                     socket.data.username = data.username;
                     socket.data.roomCode = data.roomCode;
+
                     cancelPendingLeave(data.username, data.roomCode);
                     socket.join(room.room_code);
+
                     const currentRoom = await fetchRoomState(room.id);
+
                     io.to(room.room_code).emit("roomUpdated", currentRoom);
                     return;
                 }
@@ -316,6 +150,7 @@ export const setUpSocket = (server: any) => {
                 // Store on socket for disconnect cleanup
                 socket.data.username = data.username;
                 socket.data.roomCode = data.roomCode;
+
                 cancelPendingLeave(data.username, data.roomCode);
 
                 const updatedRoom = await fetchRoomState(room.id);
@@ -426,9 +261,7 @@ export const setUpSocket = (server: any) => {
             }
         });
 
-        socket.on(
-            "submitVote",
-            async (data: { roomCode: string; voteeId: string; username: string }) => {
+        socket.on("submitVote", async (data: { roomCode: string; voteeId: string; username: string }) => {
                 if (!data.roomCode || !data.voteeId || !data.username) {
                     socket.emit("error", { message: "Room code, votee ID and username are required" });
                     return;
@@ -555,6 +388,7 @@ export const setUpSocket = (server: any) => {
             // Prevent duplicate leave handling on disconnect after explicit leave.
             socket.data.username = undefined;
             socket.data.roomCode = undefined;
+            
             cancelPendingLeave(data.username, data.roomCode);
 
             try {

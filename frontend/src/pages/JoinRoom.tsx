@@ -65,7 +65,7 @@ const JoinRoom = () => {
         };
     }, [navigate]);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (!data.roomCode.trim() || !data.username.trim()) {
