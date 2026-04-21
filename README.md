@@ -8,7 +8,7 @@ An interactive multiplayer web-based game where players try to identify the "spy
 
 - Multiplayer game rooms
 - Random word assignment (with one spy)
-- Real-time discussion (chat-based)   {future addition}
+- Real-time discussion (chat-based)   {future integration}
 - Voting system to identify the spy
 - Real-time updates 
 - Game results and winner announcement
