@@ -1,6 +1,6 @@
 # Spy Game Web App
 
-An interactive multiplayer web-based game where players try to identify the "spy" among them. Each player receives a secret word — except one player (the spy), who gets a different word. Players communicate, analyze responses, and vote to find the spy.
+An interactive multiplayer web-based game where players try to identify the "spy" among them. Each player receives same word — except one player (the spy), who gets a different word. Players communicate, analyze responses, and vote to find the spy.
 
 ---
 
@@ -8,7 +8,7 @@ An interactive multiplayer web-based game where players try to identify the "spy
 
 - Multiplayer game rooms
 - Random word assignment (with one spy)
-- Real-time discussion (chat-based)
+- Real-time discussion (chat-based)     {future integration}
 - Voting system to identify the spy
 - Real-time updates 
 - Game results and winner announcement
@@ -26,7 +26,7 @@ An interactive multiplayer web-based game where players try to identify the "spy
 - Express
 
 ### Database
-- MySQL 
+- PostgreSQL 
 
 ### Real-Time Communication
 - Socket.io
@@ -154,12 +154,6 @@ disconnect
 ## Contributing
 
 Contributions are welcome!
-
-1. Fork the repository  
-2. Create your branch (`git checkout -b feature-name`)  
-3. Commit your changes (`git commit -m "Added feature"`)  
-4. Push to the branch (`git push origin feature-name`)  
-5. Open a Pull Request  
 
 ---
 
