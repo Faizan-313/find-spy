@@ -38,7 +38,7 @@ An interactive multiplayer web-based game where players try to identify the "spy
 ```
 spy-game/
 │
-├── client/             # Frontend (React)
+├── frontend/          
 │   ├──src/ 
 |       ├──components/
 |       |     ├──Footer.tsx
@@ -67,7 +67,7 @@ spy-game/
 |       ├──main.tsx
 |       ├──index.css
 │
-├── server/             # Backend (Nodejs + Express) 
+├── backend/            
 │   ├── data/
 |   |    ├──db.schema.sql
 |   |    ├──words.ts
