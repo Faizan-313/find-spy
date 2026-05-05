@@ -115,13 +115,17 @@ npm install
 
 ---
 
-### 3. Setup Environment Variables  (For Future)
+### 3. Setup Environment Variables
 
-Create a `.env` file inside the `server` folder:
+Create `.env` files inside the `backend` and `frontend` folders:
 
-```env
-PORT=5000
+```env backend
+PORT=
 DB_URI=your_database_url
+```
+
+```env frontend
+VITE_API_URL= //backend url
 ```
 
 ---
