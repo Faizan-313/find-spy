@@ -96,7 +96,7 @@ spy-game/
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/Faizan-313/find-spy.git
-cd spy-game
+cd find-spy
 ```
 
 ### 2. Install dependencies
