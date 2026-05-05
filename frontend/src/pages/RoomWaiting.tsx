@@ -3,6 +3,7 @@ import type { Player } from "../types/types";
 import { io, Socket } from "socket.io-client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast/headless";
+import { CheckIcon, CopyIcon } from "lucide-react";
 
 const RoomWaiting = () => {
     const location = useLocation();
@@ -31,9 +32,17 @@ const RoomWaiting = () => {
         });
 
         socket.on("roomUpdated", (roomData: { players?: Player[] }) => {
-            if (roomData?.players) {
-                setRoomPlayers(roomData.players);
-            }
+            if (!roomData?.players) return;
+            setRoomPlayers((prev) => {
+                const next = roomData.players!;
+                const nextNames = new Set(next.map((p) => p.name));
+                for (const p of prev) {
+                    if (!nextNames.has(p.name)) {
+                        toast.success(`${p.name} has left the room`);
+                    }
+                }
+                return next;
+            });
         });
 
         socket.on("error", (err: { message?: string }) => {
@@ -103,10 +112,22 @@ const RoomWaiting = () => {
     }
 
     const handleLaunchGame = () => {
-        if(!socketRef.current) return;
+        if (!socketRef.current) return;
+        if (roomPlayers.length < 2) {
+            toast.error("Only one player in the lobby. Invite another agent before starting.");
+            return;
+        }
         socketRef.current.emit("startGame", { roomCode, username: userName });
+    };
+
+    const [isCopied, setIsCopied] = useState(false);
+    const handleCopyInviteCode = () => {
+        navigator.clipboard.writeText(roomCode);
+        setIsCopied(true);
+        setTimeout(() => {
+            setIsCopied(false);
+        }, 2000);
     }
-        
 
     return (
         <div
@@ -250,9 +271,14 @@ const RoomWaiting = () => {
                                 clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))",
                             }}
                         >
-                            <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">
-                                Invite Code
-                            </p>
+                            <div className="flex items-center justify-between">
+                                <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">
+                                    Invite Code
+                                </p>
+                                <button className="cursor-pointer text-white" onClick={handleCopyInviteCode}>
+                                    {isCopied ? <CheckIcon className="w-4 h-4 cursor-pointer" /> : <CopyIcon className="w-4 h-4 cursor-pointer" />}
+                                </button>
+                            </div>
                             <div className="flex items-center gap-2">
                                 <span
                                     className="flex-1 text-white font-black text-lg tracking-[0.3em]"
@@ -290,7 +316,13 @@ const RoomWaiting = () => {
                         <div className="flex flex-col gap-3 mt-auto">
                             {isHost ? (
                                 <button
-                                    className="bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-6 py-4 cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.3)] active:scale-95"
+                                    type="button"
+                                    title={
+                                        roomPlayers.length < 2
+                                            ? "Need at least two players to launch"
+                                            : undefined
+                                    }
+                                    className={`bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-6 py-4 cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.3)] active:scale-95 ${roomPlayers.length < 2 ? "opacity-60" : ""}`}
                                     style={{ clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}
                                     onClick={handleLaunchGame}
                                 >

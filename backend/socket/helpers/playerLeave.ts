@@ -46,8 +46,35 @@ async function handlePlayerLeave(
         );
         socket.leave(roomCode);
 
-        const updatedRoom = await fetchRoomState(room.id);
-        io.to(roomCode).emit("roomUpdated", updatedRoom);
+        let updatedRoom = await fetchRoomState(room.id);
+
+        // Mid-game: if only the host remains, end the round and send everyone back to lobby state
+        const midGame = room.is_started || room.is_voting_started;
+        const onlyHostRemains =
+            midGame &&
+            updatedRoom !== null &&
+            updatedRoom.players.length === 1;
+
+        if (onlyHostRemains) {
+            await dbPool.query(
+                "UPDATE room SET is_started = FALSE, is_voting_started = FALSE, is_ended = FALSE WHERE id = $1",
+                [room.id]
+            );
+            await dbPool.query("DELETE FROM vote WHERE room_id = $1", [room.id]);
+            await dbPool.query(
+                "UPDATE player SET is_spy = FALSE, word = NULL WHERE room_id = $1",
+                [room.id]
+            );
+            updatedRoom = await fetchRoomState(room.id);
+            if (updatedRoom) {
+                io.to(roomCode).emit("returnedToLobby", {
+                    message: `${username} has left. The mission cannot continue with one agent — returning to the waiting area.`,
+                    room: updatedRoom,
+                });
+            }
+        } else if (updatedRoom) {
+            io.to(roomCode).emit("roomUpdated", updatedRoom);
+        }
     }
 }
 

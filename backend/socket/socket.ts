@@ -562,6 +562,27 @@ export const setUpSocket = (server: any) => {
             }
         });
 
+        socket.on("sendMessage", (data: { roomCode: string; username: string; message: string}) => {
+            if(!data.roomCode || !data.username || !data.message){
+                socket.emit("error", {message: "Room code, username and message are required"});
+                return;
+            }
+
+            io.to(data.roomCode).emit("chatMessage", {
+                playerName: data.username,
+                message: data.message,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+        })
+
+        socket.on("typing", (data: {roomCode: string, username: string})=>{
+            if(!data.roomCode || !data.username){
+                socket.emit("error", {message: "Room code and username are required"});
+                return;
+            }
+            socket.to(data.roomCode).emit("userTyping", { username: data.username });
+        })
+
         socket.on("disconnect", () => {
             console.log("Client disconnected:", socket.id);
             const { username, roomCode } = socket.data as {

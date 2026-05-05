@@ -41,6 +41,7 @@ const Game = () => {
 
     const socketRef = useRef<Socket | null>(null);
     const votingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
     const [players, setPlayers] = useState<Player[]>(initialPlayers ?? []);
     const [votes, setVotes] = useState<Vote[]>([]);
@@ -54,6 +55,7 @@ const Game = () => {
 
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState<string>("");
+    const [isTyping, setIsTyping] = useState<Set<string>>(new Set());
 
     const [gameHistory, setGameHistory] = useState<HistoryEntry[]>([]);
 
@@ -114,6 +116,22 @@ const Game = () => {
             navigation("/create-room");
         });
 
+        socket.on("returnedToLobby", (data: { message?: string; room: socketRoom | null }) => {
+            const r = data?.room;
+            if (!r) return;
+            const me = r.players.find((p) => p.name === userName);
+            toast.success(data?.message || "Returning to the waiting area.");
+            navigation("/room-waiting", {
+                state: {
+                    roomName: r.name,
+                    roomCode: r.roomCode,
+                    userName,
+                    isHost: !!me?.isHost,
+                    players: r.players,
+                },
+            });
+        });
+
         socket.on("roomUpdated", (room: socketRoom | null) => {
             if (!room) return;
 
@@ -129,6 +147,7 @@ const Game = () => {
                 for (const p of prev) {
                     if (!nextNames.has(p.name)) {
                         pushHistory({ event: `${p.name} left`, type: "leave" });
+                        toast.success(`${p.name} has left the room`);
                     }
                 }
 
@@ -214,6 +233,15 @@ const Game = () => {
             setGameState("ended");
             toast.success(data?.message || "Game has ended!");
             pushHistory({ event: "Game ended", type: "system" });
+            navigation("/room-waiting", {
+                state: {
+                    roomName,
+                    roomCode,
+                    userName,
+                    isHost,
+                    players,
+                }
+            });
         });
 
         socket.on("chatMessage", (data: { playerName: string; message: string; timestamp: string }) => {
@@ -223,9 +251,37 @@ const Game = () => {
             ]);
         });
 
+        socket.on("userTyping", (data: { username: string }) => {
+            if (!data.username) return;
+
+            setIsTyping((prev) => {
+                if (prev.has(data.username)) return prev;
+                const newSet = new Set(prev);
+                newSet.add(data.username);
+                return newSet;
+            });
+
+            const existing = typingTimeoutsRef.current.get(data.username);
+            if (existing) clearTimeout(existing);
+
+            const timer = setTimeout(() => {
+                setIsTyping((prev) => {
+                    if (!prev.has(data.username)) return prev;
+                    const newSet = new Set(prev);
+                    newSet.delete(data.username);
+                    return newSet;
+                });
+                typingTimeoutsRef.current.delete(data.username);
+            }, 1200);
+
+            typingTimeoutsRef.current.set(data.username, timer);
+        })
+
         return () => {
             socket.removeAllListeners();
             if (votingTimerRef.current) clearInterval(votingTimerRef.current);
+            typingTimeoutsRef.current.forEach((t) => clearTimeout(t));
+            typingTimeoutsRef.current.clear();
             socket.disconnect();
         };
     }, [navigation, userName, roomName, roomCode]);
@@ -297,10 +353,29 @@ const Game = () => {
     };
 
     const handleSendMessage = () => {
-        // NOTE: chat transport intentionally left for later integration.
         if (!chatInput.trim()) return;
+        const message = chatInput.trim();
         setChatInput("");
+        // Clear typing indicator when sending message
+        setIsTyping((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(userName);
+            return newSet;
+        });
+        socketRef.current?.emit("sendMessage", {
+            roomCode,
+            username: userName,
+            message,
+        });
     };
+
+    const handleInputChange = (value: string) =>{
+        setChatInput(value);
+        socketRef.current?.emit("typing", {
+            roomCode,
+            username: userName,
+        })
+    }
 
     return (
         <div
@@ -326,6 +401,7 @@ const Game = () => {
                     isVotingPhase={isVotingPhase}
                     votingTimer={votingTimer}
                     onLeaveRoom={handleLeaveRoom}
+                    roomCode={roomCode}
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -340,8 +416,11 @@ const Game = () => {
                         <ChatPanel
                             messages={chatMessages}
                             input={chatInput}
-                            onInputChange={setChatInput}
+                            onInputChange={handleInputChange}
                             onSend={handleSendMessage}
+                            isTyping={isTyping}
+                            userName={userName}
+                            players={players}
                         />
 
                         <VotePanel
@@ -370,7 +449,6 @@ const Game = () => {
                         onStartVoting={handleStartVoting}
                         onEndVoting={handleEndVoting}
                         onEndGame={handleEndGame}
-                        onRestartGame={handleRestartGame}
                     />
                 )}
             </div>
