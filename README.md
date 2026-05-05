@@ -160,6 +160,10 @@ endVoting
 restartGame
 endGame
 leaveRoom
+sendMessage
+chatMessage
+typing
+userTyping
 disconnect
 
 ---
@@ -172,14 +176,6 @@ disconnect
 4. Players discuss to find inconsistencies  
 5. Vote to eliminate the suspected spy  
 6. Spy wins if not detected, others win if spy is caught  
-
----
-
-## Future Enhancements
-
-- Voice chat integration (WebRTC)
-- Improved mobile responsiveness
-- Custom game modes
 
 ---
 
