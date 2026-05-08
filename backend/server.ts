@@ -20,11 +20,15 @@ app.use(
 app.use(express.json())
 app.use(express.static('public'));
 
-await dbPool.connect();
-
 setUpSocket(server);
 
-server.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-})
+async function startServer() {
+    await dbPool.connect();
+
+    server.listen(port, () => {
+        console.log("Server running");
+    });
+}
+
+startServer();
 
