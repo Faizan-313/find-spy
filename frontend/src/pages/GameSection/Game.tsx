@@ -384,7 +384,7 @@ const Game = () => {
 
     return (
         <div
-            className="min-h-screen bg-[#0a0a0a] flex flex-col px-3 sm:px-4 py-4 sm:py-6 pb-10"
+            className="min-h-screen bg-[#0a0a0a] flex flex-col px-3 sm:px-4 py-4 sm:py-6 pb-10 overflow-x-hidden max-w-[100vw]"
             style={{
                 backgroundImage: `radial-gradient(ellipse at 70% 20%, rgba(0,255,100,0.04) 0%, transparent 55%),
                                     radial-gradient(ellipse at 10% 80%, rgba(255,0,0,0.05) 0%, transparent 50%)`,
@@ -397,7 +397,7 @@ const Game = () => {
                 }}
             />
 
-            <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
+            <div className="relative z-10 max-w-7xl mx-auto w-full min-w-0 flex flex-col gap-4 sm:gap-6">
                 <GameHeader
                     roomName={roomName}
                     word={word}

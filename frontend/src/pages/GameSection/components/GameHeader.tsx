@@ -62,13 +62,13 @@ const GameHeader = ({
 
     return (
         <div
-            className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 border border-white/10 bg-white/2 px-4 py-3 sm:px-5 sm:py-4 md:px-6"
+            className="flex flex-wrap items-stretch sm:items-center justify-between gap-3 sm:gap-4 border border-white/10 bg-white/2 px-3 py-3 sm:px-5 sm:py-4 md:px-6 w-full max-w-full min-w-0 overflow-hidden"
             style={{
                 clipPath:
                     "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))",
             }}
         >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 basis-full sm:basis-auto sm:flex-1 lg:flex-initial">
                 <span className="w-2 h-2 shrink-0 rounded-full bg-[#00ff64] shadow-[0_0_8px_rgba(0,255,100,0.8)] animate-pulse" />
                 <div className="min-w-0">
                     <p className="text-white/30 text-[9px] tracking-[0.3em] uppercase">Room Name</p>
@@ -95,18 +95,18 @@ const GameHeader = ({
                 ))}
             </div>
 
-            <div className="flex flex-col items-center shrink-0">
-                <p className="text-white/25 text-[9px] tracking-[0.25em] uppercase">Your Word</p>
-                <p className="text-[#1ec6af] font-black text-xs md:text-sm tracking-[0.15em] uppercase max-w-[140px] truncate">
+            <div className="flex flex-col items-start shrink-0 w-full min-w-0 sm:w-auto sm:max-w-[10rem] md:max-w-none basis-full sm:basis-auto md:items-center">
+                <p className="text-white/25 text-[9px] tracking-[0.25em] uppercase">Your word</p>
+                <p className="text-[#1ec6af] font-black text-[11px] sm:text-xs md:text-sm tracking-[0.12em] sm:tracking-[0.15em] uppercase w-full truncate">
                     "{word || "Waiting..."}"
                 </p>
             </div>
 
             <div
-                className="flex items-center gap-2 border border-[#00ff64]/25 bg-[#00ff64]/5 px-3 py-2 shrink-0"
+                className="flex items-center gap-1.5 sm:gap-2 border border-[#00ff64]/25 bg-[#00ff64]/5 px-2.5 py-2 sm:px-3 shrink-0 w-full min-w-0 max-w-full basis-full sm:basis-auto md:max-w-md"
                 style={{ clipPath: clip }}
             >
-                <div className="flex flex-col min-w-0">
+                <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-[#00ff64]/80 text-[9px] font-bold tracking-[0.2em] uppercase">
                         Room code
                     </span>
@@ -148,25 +148,31 @@ const GameHeader = ({
                 ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto justify-end md:justify-start order-last">
+            <div
+                className={`grid gap-2 shrink-0 w-full md:flex md:flex-row md:flex-wrap md:w-auto md:justify-end md:gap-2 order-last ${
+                    isHost ? "grid-cols-2" : "grid-cols-1"
+                }`}
+            >
                 {isHost && (
                     <button
                         type="button"
                         onClick={onBackToLobby}
                         title="Move all agents back to the waiting area and reset the round in the database."
-                        className="shrink-0 border border-[#00ff64]/35 text-[#00ff64]/90 hover:bg-[#00ff64]/10 hover:border-[#00ff64]/60 text-[10px] tracking-[0.25em] uppercase px-4 py-2 cursor-pointer transition-all duration-200 active:scale-95"
+                        className="min-h-[42px] md:min-h-0 flex items-center justify-center border border-[#00ff64]/35 text-[#00ff64]/90 hover:bg-[#00ff64]/10 hover:border-[#00ff64]/60 text-[9px] sm:text-[10px] tracking-[0.12em] sm:tracking-[0.2em] uppercase px-2 sm:px-4 py-2.5 md:py-2 cursor-pointer transition-all duration-200 active:scale-[0.98]"
                         style={{ clipPath: "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))" }}
                     >
-                        Back to lobby
+                        <span className="md:hidden">To lobby</span>
+                        <span className="hidden md:inline">Back to lobby</span>
                     </button>
                 )}
                 <button
                     type="button"
                     onClick={onLeaveRoom}
-                    className="shrink-0 border border-red-500/30 text-red-400/70 hover:text-red-400 hover:border-red-400/60 text-[10px] tracking-[0.25em] uppercase px-4 py-2 cursor-pointer transition-all duration-200 active:scale-95"
+                    className="min-h-[42px] md:min-h-0 flex items-center justify-center border border-red-500/35 text-red-400/80 hover:text-red-300 hover:border-red-400/55 text-[9px] sm:text-[10px] tracking-[0.12em] sm:tracking-[0.2em] uppercase px-2 sm:px-4 py-2.5 md:py-2 cursor-pointer transition-all duration-200 active:scale-[0.98]"
                     style={{ clipPath: "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))" }}
                 >
-                    Leave room
+                    <span className="md:hidden">Leave</span>
+                    <span className="hidden md:inline">Leave room</span>
                 </button>
             </div>
         </div>

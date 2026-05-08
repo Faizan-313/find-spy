@@ -22,7 +22,7 @@ const VotePanel = ({
             className="border border-white/10 bg-white/2"
             style={{ clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))" }}
         >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/6">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-white/6 gap-2">
                 <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase flex items-center gap-2">
                     <span className="inline-block w-1 h-1 rounded-full bg-[#00ff64]" />
                     Vote to Expose
@@ -107,14 +107,14 @@ const VotePanel = ({
             </div>
 
             {isVotingPhase && (
-                <div className="px-5 pb-4 flex justify-end">
+                <div className="px-4 sm:px-5 pb-4 flex justify-stretch sm:justify-end">
                     <button
                         onClick={onSubmit}
                         disabled={!selectedVote || hasSubmittedVote}
-                        className="bg-[#00ff64]/10 border border-[#00ff64]/30 text-[#00ff64] font-bold text-[10px] tracking-[0.25em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 hover:bg-[#00ff64]/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 flex items-center justify-center bg-[#00ff64]/10 border border-[#00ff64]/30 text-[#00ff64] font-bold text-[10px] tracking-[0.18em] sm:tracking-[0.25em] uppercase px-5 py-3 sm:py-2.5 cursor-pointer transition-all duration-200 hover:bg-[#00ff64]/20 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                         style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
                     >
-                        {hasSubmittedVote ? "Vote Submitted" : "Submit Vote"}
+                        {hasSubmittedVote ? "Vote submitted" : "Submit vote"}
                     </button>
                 </div>
             )}

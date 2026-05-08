@@ -23,44 +23,50 @@ const HostControls = ({
         onEndGame();
     };
 
+    const btnClip = "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))";
+    const btnBase =
+        "min-h-[44px] w-full sm:min-h-0 sm:w-auto flex items-center justify-center font-bold text-[10px] uppercase cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 px-4 py-3 sm:px-5 sm:py-2.5 tracking-[0.14em] sm:tracking-[0.22em]";
+
     return (
         <>
             <div
-                className="flex items-center justify-between border border-white/10 bg-white/2 px-6 py-4"
+                className="flex flex-col gap-4 border border-white/10 bg-white/2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 w-full min-w-0 max-w-full"
                 style={{ clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))" }}
             >
-                <div className="flex items-center gap-2">
-                    <div className="h-px w-6 bg-white/10" />
-                    <span className="text-white/20 text-[9px] tracking-[0.3em] uppercase">Host Controls</span>
+                <div className="flex items-center gap-2 shrink-0 sm:pr-2">
+                    <div className="h-px w-6 bg-[#00ff64]/25" />
+                    <span className="text-white/35 text-[9px] tracking-[0.28em] uppercase font-semibold">
+                        Host controls
+                    </span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="grid grid-cols-1 sm:flex sm:flex-wrap sm:justify-end gap-2 w-full min-w-0 sm:w-auto sm:gap-3">
                     <button
                         type="button"
                         onClick={onStartVoting}
                         disabled={gameState !== "discussion"}
-                        className="bg-[#00ff64]/10 border border-[#00ff64]/30 text-[#00ff64] font-bold text-[10px] tracking-[0.25em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 hover:bg-[#00ff64]/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
+                        className={`${btnBase} bg-[#00ff64]/10 border border-[#00ff64]/35 text-[#00ff64] hover:bg-[#00ff64]/18`}
+                        style={{ clipPath: btnClip }}
                     >
-                        Start Voting
+                        Start voting
                     </button>
                     <button
                         type="button"
                         onClick={onEndVoting}
                         disabled={gameState !== "voting"}
-                        className="border border-yellow-500/30 text-yellow-500/70 hover:text-yellow-400 hover:border-yellow-400/60 font-bold text-[10px] tracking-[0.25em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
+                        className={`${btnBase} border border-yellow-500/35 text-yellow-400/90 hover:text-yellow-300 hover:border-yellow-400/55 hover:bg-yellow-500/5`}
+                        style={{ clipPath: btnClip }}
                     >
-                        End Voting
+                        End voting
                     </button>
                     <button
                         type="button"
                         onClick={() => setShowEndConfirm(true)}
                         disabled={gameState === "ended"}
-                        className="border border-red-500/30 text-red-400/70 hover:text-red-400 hover:border-red-400/60 font-bold text-[10px] tracking-[0.25em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
+                        className={`${btnBase} border border-red-500/40 text-red-400/90 hover:text-red-300 hover:border-red-400/60 hover:bg-red-500/10`}
+                        style={{ clipPath: btnClip }}
                     >
-                        End Game
+                        End game
                     </button>
                 </div>
             </div>
@@ -83,35 +89,35 @@ const HostControls = ({
                         }}
                     >
                         <div
-                            className="px-7 py-6 border-b"
+                            className="px-5 py-5 sm:px-7 sm:py-6 border-b max-h-[min(70vh,100%)] overflow-y-auto"
                             style={{ borderColor: `${accent}22` }}
                         >
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="h-px w-8" style={{ backgroundColor: `${accent}80` }} />
+                                <div className="h-px w-8 shrink-0" style={{ backgroundColor: `${accent}80` }} />
                                 <span
-                                    className="text-[10px] font-bold tracking-[0.3em] uppercase"
+                                    className="text-[10px] font-bold tracking-[0.25em] uppercase"
                                     style={{ color: accent }}
                                 >
-                                    Confirm End Mission
+                                    Confirm end mission
                                 </span>
                             </div>
                             <h2
                                 id="end-game-title"
-                                className="text-2xl font-black tracking-[0.12em] uppercase text-white"
+                                className="text-xl sm:text-2xl font-black tracking-[0.08em] sm:tracking-[0.12em] uppercase text-white leading-tight"
                                 style={{ fontFamily: "'Arial Black', sans-serif" }}
                             >
                                 End game for everyone?
                             </h2>
-                            <p id="end-game-desc" className="text-white/45 text-xs tracking-wider mt-3 leading-relaxed">
+                            <p id="end-game-desc" className="text-white/45 text-[11px] sm:text-xs tracking-wide mt-3 leading-relaxed">
                                 This ends the session for all agents in this room. They will see the game as finished. If you
                                 only wanted a new round after results, close this and use <span className="text-white/70">Play Again</span> on the mission debrief instead.
                             </p>
                         </div>
-                        <div className="px-7 py-5 flex justify-end gap-3 border-t border-white/8">
+                        <div className="px-5 py-4 sm:px-7 sm:py-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 border-t border-white/8">
                             <button
                                 type="button"
                                 onClick={() => setShowEndConfirm(false)}
-                                className="border border-white/15 text-white/60 hover:text-white hover:border-white/30 font-bold text-[10px] tracking-[0.25em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-95"
+                                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto flex items-center justify-center border border-white/15 text-white/70 hover:text-white hover:border-white/30 font-bold text-[10px] tracking-[0.2em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-[0.98]"
                                 style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
                             >
                                 Cancel
@@ -119,10 +125,10 @@ const HostControls = ({
                             <button
                                 type="button"
                                 onClick={handleConfirmEnd}
-                                className="border font-black text-[10px] tracking-[0.3em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-95 text-black bg-red-500/90 hover:bg-red-400 border-red-400/70"
+                                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto flex items-center justify-center border font-black text-[10px] tracking-[0.2em] sm:tracking-[0.28em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-[0.98] text-black bg-red-500/90 hover:bg-red-400 border-red-400/70"
                                 style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
                             >
-                                Yes, End Game
+                                End for everyone
                             </button>
                         </div>
                     </div>

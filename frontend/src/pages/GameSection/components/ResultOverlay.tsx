@@ -21,7 +21,7 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-2xl border bg-[#0a0a0a]"
+                className="relative w-full max-w-2xl max-h-[min(92dvh,calc(100%-2rem))] overflow-y-auto border bg-[#0a0a0a]"
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     borderColor: `${accent}55`,
@@ -30,7 +30,7 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
                 }}
             >
                 <div
-                    className="px-8 py-7 border-b"
+                    className="px-5 py-5 sm:px-8 sm:py-7 border-b max-h-[min(65vh,100%)] overflow-y-auto"
                     style={{ borderColor: `${accent}22` }}
                 >
                     <div className="flex items-center gap-3 mb-3">
@@ -43,7 +43,7 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
                         </span>
                     </div>
                     <h2
-                        className="text-6xl font-black tracking-[0.15em] uppercase leading-none"
+                        className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[0.08em] sm:tracking-[0.12em] md:tracking-[0.15em] uppercase leading-none"
                         style={{
                             color: accent,
                             fontFamily: "'Arial Black', sans-serif",
@@ -60,7 +60,7 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
                     <div
-                        className="px-8 py-6 border-b md:border-b-0 md:border-r"
+                        className="px-5 py-5 sm:px-8 sm:py-6 border-b md:border-b-0 md:border-r"
                         style={{ borderColor: "rgba(255,255,255,0.08)" }}
                     >
                         <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">
@@ -90,7 +90,7 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
                         )}
                     </div>
 
-                    <div className="px-8 py-6">
+                    <div className="px-5 py-5 sm:px-8 sm:py-6">
                         <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">
                             Vote Tally
                         </p>
@@ -118,7 +118,7 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
                 </div>
 
                 <div
-                    className="px-8 py-6 border-t"
+                    className="px-5 py-5 sm:px-8 sm:py-6 border-t"
                     style={{ borderColor: "rgba(255,255,255,0.08)" }}
                 >
                     <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">
@@ -153,16 +153,16 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
                     </div>
                 </div>
 
-                <div className="px-8 py-5 flex items-center justify-between gap-3 border-t border-white/5">
-                    <span className="text-white/30 text-[9px] tracking-[0.25em] uppercase">
+                <div className="px-5 py-5 sm:px-8 sm:py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-white/5">
+                    <span className="text-white/30 text-[9px] sm:text-[10px] tracking-[0.2em] uppercase text-center sm:text-left">
                         {isHost
                             ? "Start a fresh round with new words"
                             : "Waiting for host to start a new round..."}
                     </span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                         <button
                             onClick={onClose}
-                            className="border border-white/15 text-white/60 hover:text-white hover:border-white/30 font-bold text-[10px] tracking-[0.25em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-95"
+                            className="min-h-[44px] sm:min-h-0 flex items-center justify-center border border-white/15 text-white/60 hover:text-white hover:border-white/30 font-bold text-[10px] tracking-[0.2em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 active:scale-[0.98]"
                             style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
                         >
                             Close
@@ -170,10 +170,10 @@ const ResultOverlay = ({ result, didWin, userName, isHost, onReplay, onClose }: 
                         {isHost && (
                             <button
                                 onClick={onReplay}
-                                className="bg-[#00ff64] text-black font-black text-[10px] tracking-[0.3em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 hover:bg-white active:scale-95"
+                                className="min-h-[44px] sm:min-h-0 flex items-center justify-center bg-[#00ff64] text-black font-black text-[10px] tracking-[0.25em] uppercase px-5 py-2.5 cursor-pointer transition-all duration-200 hover:bg-white active:scale-[0.98]"
                                 style={{ clipPath: "polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px))" }}
                             >
-                                Play Again
+                                Play again
                             </button>
                         )}
                     </div>

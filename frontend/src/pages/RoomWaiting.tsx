@@ -131,7 +131,7 @@ const RoomWaiting = () => {
 
     return (
         <div
-            className="min-h-screen bg-[#0a0a0a] flex flex-col px-3 sm:px-4 py-6 sm:py-8 pb-12"
+            className="min-h-screen bg-[#0a0a0a] flex flex-col px-3 sm:px-4 py-6 sm:py-8 pb-12 overflow-x-hidden max-w-[100vw]"
             style={{
                 backgroundImage: `radial-gradient(ellipse at 60% 40%, rgba(0,255,100,0.04) 0%, transparent 60%),
                                     radial-gradient(ellipse at 20% 80%, rgba(255,0,0,0.04) 0%, transparent 50%)`,
@@ -144,7 +144,7 @@ const RoomWaiting = () => {
                 }}
             />
 
-            <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col gap-6 lg:gap-8">
+            <div className="relative z-10 max-w-5xl mx-auto w-full min-w-0 flex flex-col gap-6 lg:gap-8">
 
                 <div className="flex flex-col-reverse lg:flex-row lg:items-start lg:justify-between gap-6">
                     <div className="min-w-0">
@@ -190,12 +190,12 @@ const RoomWaiting = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="h-px flex-1 bg-white/10" />
-                    <span className="text-white/20 text-[9px] tracking-[0.3em] uppercase">
-                        Agents Online · {roomPlayers.length}/8
+                <div className="flex items-center gap-4 min-w-0">
+                    <div className="h-px flex-1 bg-white/10 min-w-[1rem]" />
+                    <span className="text-white/20 text-[8px] sm:text-[9px] tracking-[0.2em] sm:tracking-[0.3em] uppercase whitespace-nowrap shrink-0">
+                        Agents · {roomPlayers.length}/8
                     </span>
-                    <div className="h-px flex-1 bg-white/10" />
+                    <div className="h-px flex-1 bg-white/10 min-w-[1rem]" />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -209,12 +209,12 @@ const RoomWaiting = () => {
                         {roomPlayers.map((player: Player, index: number) => (
                             <div
                                 key={player.id}
-                                className="flex items-center justify-between border border-white/10 bg-white/2 px-5 py-4 transition-all duration-200 hover:border-white/20 hover:bg-white/4"
+                                className="flex items-center justify-between gap-3 border border-white/10 bg-white/2 px-4 py-3.5 sm:px-5 sm:py-4 transition-all duration-200 hover:border-white/20 hover:bg-white/4 min-w-0"
                                 style={{
                                     clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))",
                                 }}
                             >
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                                     <div
                                         className="w-9 h-9 border border-white/10 flex items-center justify-center text-white/30 text-xs font-bold"
                                         style={{
@@ -224,10 +224,10 @@ const RoomWaiting = () => {
                                         {String(index + 1).padStart(2, "0")}
                                     </div>
 
-                                    <div>
-                                        <div className="flex items-center gap-2">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <span
-                                                className="text-white font-black text-sm tracking-[0.15em] uppercase"
+                                                className="text-white font-black text-sm tracking-[0.12em] uppercase truncate min-w-0"
                                                 style={{ fontFamily: "'Arial Black', sans-serif" }}
                                             >
                                                 {player.name}
@@ -264,15 +264,15 @@ const RoomWaiting = () => {
                         ))}
                     </div>
 
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 w-full min-w-0 max-w-full">
                         <div
-                            className="border border-[#00ff64]/20 bg-[#00ff64]/3 p-5"
+                            className="border border-[#00ff64]/20 bg-[#00ff64]/3 p-4 sm:p-5"
                             style={{
                                 clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))",
                             }}
                         >
-                            <div className="flex items-center justify-between">
-                                <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">
+                            <div className="flex items-start justify-between gap-3 mb-1">
+                                <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase pt-0.5">
                                     Invite Code
                                 </p>
                                 <button className="cursor-pointer text-white" onClick={handleCopyInviteCode}>
@@ -289,7 +289,7 @@ const RoomWaiting = () => {
                         </div>
 
                         <div
-                            className="border border-white/10 bg-white/2 p-5"
+                            className="border border-white/10 bg-white/2 p-4 sm:p-5"
                             style={{
                                 clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))",
                             }}
@@ -312,7 +312,7 @@ const RoomWaiting = () => {
                             </ul>
                         </div>
 
-                        <div className="flex flex-col gap-3 mt-auto">
+                        <div className="flex flex-col gap-3 mt-auto pt-1">
                             {isHost ? (
                                 <button
                                     type="button"
@@ -321,27 +321,28 @@ const RoomWaiting = () => {
                                             ? "Need at least two players to launch"
                                             : undefined
                                     }
-                                    className={`bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-6 py-4 cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.3)] active:scale-95 ${roomPlayers.length < 2 ? "opacity-60" : ""}`}
+                                    className={`w-full min-h-[48px] flex items-center justify-center bg-[#00ff64] text-black font-black text-xs sm:text-sm tracking-[0.15em] sm:tracking-[0.26em] uppercase px-4 py-3.5 cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.3)] active:scale-[0.98] ${roomPlayers.length < 2 ? "opacity-60" : ""}`}
                                     style={{ clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}
                                     onClick={handleLaunchGame}
                                 >
-                                    Launch Mission
+                                    Launch mission
                                 </button>
                             ) : (
                                 <button
-                                    className="bg-[#00ff64] text-black font-black text-sm tracking-[0.3em] uppercase px-6 py-4 cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.3)] active:scale-95"
+                                    type="button"
+                                    className="w-full min-h-[48px] flex items-center justify-center bg-[#00ff64]/15 border border-[#00ff64]/30 text-[#00ff64] font-bold text-xs sm:text-sm tracking-[0.15em] sm:tracking-[0.22em] uppercase px-4 py-3.5 cursor-default"
                                     style={{ clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}
                                 >
-                                    Ready Up
+                                    Waiting for host
                                 </button>
                             )}
                             <button
-                                className="border border-white/10 text-white/40 hover:text-white hover:border-white/30 font-bold text-sm tracking-[0.2em] uppercase px-6 py-3 cursor-pointer transition-all duration-200 active:scale-95"
+                                className="w-full min-h-[48px] flex items-center justify-center border border-white/15 text-white/55 hover:text-white hover:border-white/35 hover:bg-white/5 font-bold text-xs sm:text-sm tracking-[0.15em] sm:tracking-[0.2em] uppercase px-4 py-3 cursor-pointer transition-all duration-200 active:scale-[0.98]"
                                 style={{ clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}
                                 onClick={handleLeave}
                                 disabled={isLeaving}
                             >
-                                {isLeaving ? "Leaving..." : "Leave Room"}
+                                {isLeaving ? "Leaving…" : "Leave room"}
                             </button>
                         </div>
                     </div>
