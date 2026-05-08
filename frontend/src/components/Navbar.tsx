@@ -10,8 +10,8 @@ const Navbar = () => {
             <div className="flex items-center gap-0.5 sm:gap-1 w-full sm:w-auto justify-between sm:justify-end">
                 {[
                     { to: "/", label: "Home" },
-                    { to: "/create-room", label: <>Create<span className="hidden sm:inline"> Room</span></> },
-                    { to: "/join-room", label: <>Join<span className="hidden sm:inline"> Room</span></> },
+                    { to: "/create-room", label: <>Create Room</> },
+                    { to: "/join-room", label: <>Join Room</> },
                 ].map(({ to, label }) => (
                 <NavLink
                     key={to}
