@@ -27,6 +27,7 @@ const ChatPanel = ({
     players,
 }: ChatPanelProps) => {
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const prevMessageCountRef = useRef(0);
 
     // Stable color per agent based on their index in the player list,
     // matching the palette PlayerList uses so identities stay consistent.
@@ -37,11 +38,15 @@ const ChatPanel = ({
     }, [players]);
 
     useEffect(() => {
-        if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop =
-                messagesContainerRef.current.scrollHeight;
+        const el = messagesContainerRef.current;
+        if (!el) return;
+        const n = messages.length;
+        const grew = n > prevMessageCountRef.current;
+        prevMessageCountRef.current = n;
+        if (grew) {
+            el.scrollTop = el.scrollHeight;
         }
-    }, [messages, isTyping]);
+    }, [messages]);
 
     const typingNames = Array.from(isTyping).filter((n) => n !== userName);
 
@@ -50,7 +55,7 @@ const ChatPanel = ({
             className="flex flex-col border border-white/10 bg-white/2 backdrop-blur-sm"
             style={{ clipPath: cornerClip }}
         >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-5 py-3 border-b border-white/6 gap-2">
                 <p className="text-[#00ff64] text-[10px] font-bold tracking-[0.25em] uppercase flex items-center gap-2">
                     <span className="inline-block w-1 h-1 rounded-full bg-[#00ff64] shadow-[0_0_6px_rgba(0,255,100,0.8)]" />
                     Secure Channel
@@ -63,7 +68,7 @@ const ChatPanel = ({
 
             <div
                 ref={messagesContainerRef}
-                className="h-72 px-5 py-4 flex flex-col gap-4 overflow-y-auto chat-scroll"
+                className="h-56 min-h-[12rem] sm:h-72 px-4 sm:px-5 py-4 flex flex-col gap-4 overflow-y-auto chat-scroll overscroll-y-contain"
             >
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2">
@@ -173,7 +178,7 @@ const ChatPanel = ({
                 )}
             </div>
 
-            <div className="px-5 py-3 border-t border-white/6 flex gap-3">
+            <div className="px-4 sm:px-5 py-3 border-t border-white/6 flex flex-col sm:flex-row gap-3 sm:gap-3 sm:items-center">
                 <div
                     className="flex-1 relative bg-black/30 border border-white/10 focus-within:border-[#00ff64]/50 focus-within:shadow-[0_0_12px_rgba(0,255,100,0.15)] transition-all duration-200"
                     style={{ clipPath: innerClip }}

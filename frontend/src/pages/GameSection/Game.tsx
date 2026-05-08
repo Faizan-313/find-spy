@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import toast from "react-hot-toast";
 
@@ -79,6 +79,10 @@ const Game = () => {
 
     const pushHistory = (entry: Omit<HistoryEntry, "time">) =>
         setGameHistory((prev) => [...prev, { ...entry, time: nowTime() }]);
+
+    useLayoutEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     useEffect(() => {
         if (!roomCode || !userName) {
@@ -380,7 +384,7 @@ const Game = () => {
 
     return (
         <div
-            className="min-h-screen bg-[#0a0a0a] flex flex-col px-4 py-6"
+            className="min-h-screen bg-[#0a0a0a] flex flex-col px-3 sm:px-4 py-4 sm:py-6 pb-10"
             style={{
                 backgroundImage: `radial-gradient(ellipse at 70% 20%, rgba(0,255,100,0.04) 0%, transparent 55%),
                                     radial-gradient(ellipse at 10% 80%, rgba(255,0,0,0.05) 0%, transparent 50%)`,
@@ -393,7 +397,7 @@ const Game = () => {
                 }}
             />
 
-            <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col gap-6">
+            <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
                 <GameHeader
                     roomName={roomName}
                     word={word}
@@ -407,7 +411,7 @@ const Game = () => {
                     roomCode={roomCode}
                 />
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
                     <PlayerList
                         players={players}
                         userName={userName}

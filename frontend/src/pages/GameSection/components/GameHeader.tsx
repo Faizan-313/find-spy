@@ -62,7 +62,7 @@ const GameHeader = ({
 
     return (
         <div
-            className="flex flex-wrap items-center justify-between gap-4 border border-white/10 bg-white/2 px-5 py-4 md:px-6"
+            className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 border border-white/10 bg-white/2 px-4 py-3 sm:px-5 sm:py-4 md:px-6"
             style={{
                 clipPath:
                     "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))",
@@ -111,9 +111,8 @@ const GameHeader = ({
                         Room code
                     </span>
                     <span
-                        className="text-white font-black text-sm tracking-[0.25em]"
+                        className="text-white font-mono font-bold text-[11px] sm:text-sm tracking-[0.12em] sm:tracking-[0.2em] break-all leading-snug"
                         title={roomCode}
-                        style={{ fontFamily: "'Arial Black', sans-serif" }}
                     >
                         {code}
                     </span>
@@ -135,7 +134,21 @@ const GameHeader = ({
                 </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex md:hidden w-full gap-2 justify-between border-t border-white/10 pt-3 order-last">
+                {stats.map((stat) => (
+                    <div key={stat.label} className="text-center flex-1 min-w-0 px-1">
+                        <p className="text-white/25 text-[8px] tracking-[0.2em] uppercase truncate">{stat.label}</p>
+                        <p
+                            className="text-[#00ff64] font-black text-[11px] tracking-[0.12em] uppercase truncate"
+                            style={{ fontFamily: "'Arial Black', sans-serif" }}
+                        >
+                            {stat.value}
+                        </p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto justify-end md:justify-start order-last">
                 {isHost && (
                     <button
                         type="button"

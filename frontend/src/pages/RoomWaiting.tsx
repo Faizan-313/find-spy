@@ -131,7 +131,7 @@ const RoomWaiting = () => {
 
     return (
         <div
-            className="min-h-screen bg-[#0a0a0a] flex flex-col px-4 py-8"
+            className="min-h-screen bg-[#0a0a0a] flex flex-col px-3 sm:px-4 py-6 sm:py-8 pb-12"
             style={{
                 backgroundImage: `radial-gradient(ellipse at 60% 40%, rgba(0,255,100,0.04) 0%, transparent 60%),
                                     radial-gradient(ellipse at 20% 80%, rgba(255,0,0,0.04) 0%, transparent 50%)`,
@@ -144,18 +144,18 @@ const RoomWaiting = () => {
                 }}
             />
 
-            <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col gap-8">
+            <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col gap-6 lg:gap-8">
 
-                <div className="flex items-start justify-between">
-                    <div>
+                <div className="flex flex-col-reverse lg:flex-row lg:items-start lg:justify-between gap-6">
+                    <div className="min-w-0">
                         <div className="flex items-center gap-3 mb-2">
-                            <div className="h-px w-8 bg-[#00ff64]/50" />
+                            <div className="h-px w-8 bg-[#00ff64]/50 shrink-0" />
                             <span className="text-[#00ff64] text-[10px] font-bold tracking-[0.3em] uppercase">
                                 Classified Operation
                             </span>
                         </div>
                         <h1
-                            className="text-white text-5xl font-black tracking-[0.12em] uppercase leading-none"
+                            className="text-white text-3xl sm:text-4xl lg:text-5xl font-black tracking-[0.08em] sm:tracking-[0.12em] uppercase leading-[1.05] sm:leading-none"
                             style={{
                                 fontFamily: "'Arial Black', sans-serif",
                                 textShadow: "0 0 40px rgba(0,255,100,0.15)",
@@ -165,20 +165,20 @@ const RoomWaiting = () => {
                             <br />
                             <span className="text-[#00ff64]">IS THE SPY</span>
                         </h1>
-                        <p className="text-white/30 text-xs tracking-[0.25em] uppercase mt-3">
+                        <p className="text-white/30 text-[10px] sm:text-xs tracking-[0.25em] uppercase mt-3">
                             Trust no one. Uncover everything.
                         </p>
                     </div>
 
                     <div
-                        className="border border-white/10 bg-white/3 px-5 py-4 text-right"
+                        className="border border-white/10 bg-white/3 px-4 sm:px-5 py-3 sm:py-4 lg:text-right shrink-0 w-full lg:max-w-xs"
                         style={{
                             clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))",
                         }}
                     >
                         <p className="text-white/30 text-[9px] tracking-[0.25em] uppercase mb-1">Operation</p>
                         <p
-                            className="text-[#00ff64] text-xl font-black tracking-[0.2em]"
+                            className="text-[#00ff64] text-lg sm:text-xl font-black tracking-[0.2em] break-words"
                             style={{ fontFamily: "'Arial Black', sans-serif" }}
                         >
                             {roomName}
@@ -281,8 +281,7 @@ const RoomWaiting = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span
-                                    className="flex-1 text-white font-black text-lg tracking-[0.3em]"
-                                    style={{ fontFamily: "'Arial Black', sans-serif" }}
+                                    className="flex-1 text-white font-mono font-black text-base sm:text-lg tracking-[0.2em] sm:tracking-[0.3em] break-all"
                                 >
                                     {roomCode}
                                 </span>

@@ -1,7 +1,13 @@
 import { Server } from "socket.io";
 import dbPool from "../database/db.config";
 import type { socketRoom, dbRoom, Player} from "../types/types"
-import generateRoomCode from "./helpers/generateRoomCode" 
+import generateRoomCode from "./helpers/generateRoomCode";
+import {
+    validateRoomName,
+    validateAgentName,
+    normalizeRoomCode,
+    validateRoomCodeFormat,
+} from "./helpers/roomValidation";
 import fetchRoomState from "./helpers/fetchRoomState"
 import { handlePlayerLeave, cancelPendingLeave, pendingLeaves, pendingLeaveKey } from "./helpers/playerLeave"
 import generateWords from "./helpers/generateWords";
@@ -25,11 +31,25 @@ export const setUpSocket = (server: any) => {
                 return;
             }
 
+            const roomNameErr = validateRoomName(data.roomName);
+            if (roomNameErr) {
+                socket.emit("error", { message: roomNameErr });
+                return;
+            }
+            const agentErr = validateAgentName(data.username);
+            if (agentErr) {
+                socket.emit("error", { message: agentErr });
+                return;
+            }
+
+            const roomName = data.roomName.trim();
+            const username = data.username.trim();
+
             try {
                 //check if this user is already hosting an active room
                 const existingRoomResult = await dbPool.query<{ id: string; is_ended: boolean }>(
                     "SELECT id, is_ended FROM room WHERE host = $1 ORDER BY created_at DESC LIMIT 1",
-                    [data.username]
+                    [username]
                 );
 
                 if (existingRoomResult.rows.length > 0 && existingRoomResult.rows[0].is_ended === false) {
@@ -39,11 +59,25 @@ export const setUpSocket = (server: any) => {
                     return;
                 }
 
-                const roomCode = generateRoomCode(data.roomName, data.username);
+                let roomCode: string | null = null;
+                for (let attempt = 0; attempt < 30; attempt++) {
+                    const candidate = generateRoomCode();
+                    const taken = await dbPool.query("SELECT 1 FROM room WHERE room_code = $1 LIMIT 1", [
+                        candidate,
+                    ]);
+                    if (taken.rows.length === 0) {
+                        roomCode = candidate;
+                        break;
+                    }
+                }
+                if (!roomCode) {
+                    socket.emit("error", { message: "Could not allocate a unique room code. Please try again." });
+                    return;
+                }
 
                 const roomResult = await dbPool.query<{ id: string }>(
                     "INSERT INTO room (name, host, room_code) VALUES ($1, $2, $3) RETURNING id",
-                    [data.roomName, data.username, roomCode]
+                    [roomName, username, roomCode]
                 );
 
                 if (!roomResult.rows.length) {
@@ -55,7 +89,7 @@ export const setUpSocket = (server: any) => {
 
                 const playerResult = await dbPool.query<{ id: string }>(
                     "INSERT INTO player (name, is_host, room_id) VALUES ($1, $2, $3) RETURNING id",
-                    [data.username, true, roomId]
+                    [username, true, roomId]
                 );
 
                 if (!playerResult.rows.length) {
@@ -64,16 +98,16 @@ export const setUpSocket = (server: any) => {
                 }
 
                 // Store on socket for disconnect cleanup
-                socket.data.username = data.username;
+                socket.data.username = username;
                 socket.data.roomCode = roomCode;
-                cancelPendingLeave(data.username, roomCode);
+                cancelPendingLeave(username, roomCode);
 
                 const newRoom: socketRoom = {
                     id: roomId,
                     roomCode,
-                    name: data.roomName,
-                    host: data.username,
-                    players: [{ id: playerResult.rows[0].id, name: data.username, isHost: true }],
+                    name: roomName,
+                    host: username,
+                    players: [{ id: playerResult.rows[0].id, name: username, isHost: true }],
                     isVotingStarted: false,
                     isStarted: false,
                     votes: [],
@@ -93,10 +127,23 @@ export const setUpSocket = (server: any) => {
                 return;
             }
 
+            const agentErr = validateAgentName(data.username);
+            if (agentErr) {
+                socket.emit("error", { message: agentErr });
+                return;
+            }
+            const username = data.username.trim();
+            const roomCode = normalizeRoomCode(data.roomCode);
+            const codeErr = validateRoomCodeFormat(roomCode);
+            if (codeErr) {
+                socket.emit("error", { message: codeErr });
+                return;
+            }
+
             try {
                 const roomResult = await dbPool.query<dbRoom>(
                     "SELECT * FROM room WHERE room_code = $1 LIMIT 1",
-                    [data.roomCode]
+                    [roomCode]
                 );
 
                 if (!roomResult.rows.length) {
@@ -115,14 +162,14 @@ export const setUpSocket = (server: any) => {
                 // after the game has started. 
                 const duplicateResult = await dbPool.query(
                     "SELECT id FROM player WHERE room_id = $1 AND name = $2 LIMIT 1",
-                    [room.id, data.username]
+                    [room.id, username]
                 );
 
                 if (duplicateResult.rows.length > 0) {
-                    socket.data.username = data.username;
-                    socket.data.roomCode = data.roomCode;
+                    socket.data.username = username;
+                    socket.data.roomCode = roomCode;
 
-                    cancelPendingLeave(data.username, data.roomCode);
+                    cancelPendingLeave(username, roomCode);
                     socket.join(room.room_code);
 
                     const currentRoom = await fetchRoomState(room.id);
@@ -149,14 +196,14 @@ export const setUpSocket = (server: any) => {
 
                 await dbPool.query(
                     "INSERT INTO player (name, is_host, room_id) VALUES ($1, $2, $3)",
-                    [data.username, false, room.id]
+                    [username, false, room.id]
                 );
 
                 // Store on socket for disconnect cleanup
-                socket.data.username = data.username;
-                socket.data.roomCode = data.roomCode;
+                socket.data.username = username;
+                socket.data.roomCode = roomCode;
 
-                cancelPendingLeave(data.username, data.roomCode);
+                cancelPendingLeave(username, roomCode);
 
                 const updatedRoom = await fetchRoomState(room.id);
 

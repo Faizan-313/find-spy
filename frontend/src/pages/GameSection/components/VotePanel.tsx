@@ -42,7 +42,7 @@ const VotePanel = ({
                 )}
             </div>
 
-            <div className="px-5 py-4 grid grid-cols-2 gap-3">
+            <div className="px-4 sm:px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {players.map((player) => {
                     const playerId = String(player.id);
                     const isSelf = playerId === me;

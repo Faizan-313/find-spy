@@ -3,6 +3,7 @@
 .chat-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 255, 100, 0.25) transparent;
+    overscroll-behavior-y: contain;
 }
 
 .chat-scroll::-webkit-scrollbar {
