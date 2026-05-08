@@ -562,6 +562,53 @@ export const setUpSocket = (server: any) => {
             }
         });
 
+        socket.on("hostReturnToLobby", async (data: { roomCode: string; username: string }) => {
+            if (!data.roomCode || !data.username) {
+                socket.emit("error", { message: "Room code and username are required" });
+                return;
+            }
+
+            try {
+                const roomResult = await dbPool.query<dbRoom>(
+                    "SELECT * FROM room WHERE room_code = $1 LIMIT 1",
+                    [data.roomCode]
+                );
+
+                if (!roomResult.rows.length) {
+                    socket.emit("error", { message: "Room not found" });
+                    return;
+                }
+
+                const room = roomResult.rows[0];
+
+                if (room.host !== data.username) {
+                    socket.emit("error", { message: "Only the host can return everyone to the lobby" });
+                    return;
+                }
+
+                await dbPool.query(
+                    "UPDATE room SET is_started = FALSE, is_voting_started = FALSE, is_ended = FALSE WHERE id = $1",
+                    [room.id]
+                );
+                await dbPool.query("DELETE FROM vote WHERE room_id = $1", [room.id]);
+                await dbPool.query(
+                    "UPDATE player SET is_spy = FALSE, word = NULL WHERE room_id = $1",
+                    [room.id]
+                );
+
+                const updatedRoom = await fetchRoomState(room.id);
+                if (updatedRoom) {
+                    io.to(data.roomCode).emit("returnedToLobby", {
+                        message: "The host moved everyone back to the waiting area.",
+                        room: updatedRoom,
+                    });
+                }
+            } catch (err) {
+                console.error("hostReturnToLobby error:", err);
+                socket.emit("error", { message: "Internal server error" });
+            }
+        });
+
         socket.on("sendMessage", (data: { roomCode: string; username: string; message: string}) => {
             if(!data.roomCode || !data.username || !data.message){
                 socket.emit("error", {message: "Room code, username and message are required"});
@@ -610,7 +657,7 @@ export const setUpSocket = (server: any) => {
                 } catch (err) {
                     console.error("disconnect cleanup error:", err);
                 }
-            }, 5000);
+            }, 1500);
 
             pendingLeaves.set(key, timer);
         });

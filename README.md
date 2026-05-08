@@ -159,6 +159,7 @@ voteSubmitted
 endVoting
 restartGame
 endGame
+gameEnded
 leaveRoom
 sendMessage
 chatMessage

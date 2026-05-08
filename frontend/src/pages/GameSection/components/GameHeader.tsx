@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { toast } from "react-hot-toast/headless";
+import toast from "react-hot-toast";
 import type { GameState } from "../../../types/types";
 import { formatTime } from "../../../utils/utils";
 
@@ -8,24 +8,27 @@ type GameHeaderProps = {
     roomName: string;
     word: string;
     isSpy: boolean;
+    isHost: boolean;
     gameState: GameState;
     isVotingPhase: boolean;
     votingTimer: number;
     onLeaveRoom: () => void;
+    onBackToLobby: () => void;
     roomCode: string;
 };
 
-const clip =
-    "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))";
+const clip = "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))";
 
 const GameHeader = ({
     roomName,
     word,
     isSpy,
+    isHost,
     gameState,
     isVotingPhase,
     votingTimer,
     onLeaveRoom,
+    onBackToLobby,
     roomCode,
 }: GameHeaderProps) => {
     const [codeCopied, setCodeCopied] = useState(false);
@@ -132,14 +135,27 @@ const GameHeader = ({
                 </button>
             </div>
 
-            <button
-                type="button"
-                onClick={onLeaveRoom}
-                className="shrink-0 border border-red-500/30 text-red-400/70 hover:text-red-400 hover:border-red-400/60 text-[10px] tracking-[0.25em] uppercase px-4 py-2 cursor-pointer transition-all duration-200 active:scale-95"
-                style={{ clipPath: "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))" }}
-            >
-                Leave Room
-            </button>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {isHost && (
+                    <button
+                        type="button"
+                        onClick={onBackToLobby}
+                        title="Move all agents back to the waiting area and reset the round in the database."
+                        className="shrink-0 border border-[#00ff64]/35 text-[#00ff64]/90 hover:bg-[#00ff64]/10 hover:border-[#00ff64]/60 text-[10px] tracking-[0.25em] uppercase px-4 py-2 cursor-pointer transition-all duration-200 active:scale-95"
+                        style={{ clipPath: "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))" }}
+                    >
+                        Back to lobby
+                    </button>
+                )}
+                <button
+                    type="button"
+                    onClick={onLeaveRoom}
+                    className="shrink-0 border border-red-500/30 text-red-400/70 hover:text-red-400 hover:border-red-400/60 text-[10px] tracking-[0.25em] uppercase px-4 py-2 cursor-pointer transition-all duration-200 active:scale-95"
+                    style={{ clipPath: "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))" }}
+                >
+                    Leave room
+                </button>
+            </div>
         </div>
     );
 };

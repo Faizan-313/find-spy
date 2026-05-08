@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { toast } from "react-hot-toast/headless";
+import toast from "react-hot-toast";
 
 import type {
     Player,
@@ -121,15 +121,18 @@ const Game = () => {
             if (!r) return;
             const me = r.players.find((p) => p.name === userName);
             toast.success(data?.message || "Returning to the waiting area.");
-            navigation("/room-waiting", {
-                state: {
-                    roomName: r.name,
-                    roomCode: r.roomCode,
-                    userName,
-                    isHost: !!me?.isHost,
-                    players: r.players,
-                },
-            });
+            // Let the Toaster paint before unmounting this route (instant nav can drop the toast).
+            setTimeout(() => {
+                navigation("/room-waiting", {
+                    state: {
+                        roomName: r.name,
+                        roomCode: r.roomCode,
+                        userName,
+                        isHost: !!me?.isHost,
+                        players: r.players,
+                    },
+                });
+            }, 120);
         });
 
         socket.on("roomUpdated", (room: socketRoom | null) => {
@@ -233,15 +236,7 @@ const Game = () => {
             setGameState("ended");
             toast.success(data?.message || "Game has ended!");
             pushHistory({ event: "Game ended", type: "system" });
-            navigation("/room-waiting", {
-                state: {
-                    roomName,
-                    roomCode,
-                    userName,
-                    isHost,
-                    players,
-                }
-            });
+            navigation("/create-room");
         });
 
         socket.on("chatMessage", (data: { playerName: string; message: string; timestamp: string }) => {
@@ -324,6 +319,12 @@ const Game = () => {
         socketRef.current.emit("leaveRoom", { roomCode, username: userName });
     };
 
+    // Host only: server resets room + broadcasts returnedToLobby so every agent navigates together.
+    const handleBackToLobby = () => {
+        if (!isHost) return;
+        socketRef.current?.emit("hostReturnToLobby", { roomCode, username: userName });
+    };
+
     const handleStartVoting = () => {
         socketRef.current?.emit("startVoting", { roomCode, username: userName });
     };
@@ -397,10 +398,12 @@ const Game = () => {
                     roomName={roomName}
                     word={word}
                     isSpy={isSpy}
+                    isHost={isHost}
                     gameState={gameState}
                     isVotingPhase={isVotingPhase}
                     votingTimer={votingTimer}
                     onLeaveRoom={handleLeaveRoom}
+                    onBackToLobby={handleBackToLobby}
                     roomCode={roomCode}
                 />
 

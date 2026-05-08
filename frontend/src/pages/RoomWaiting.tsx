@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { Player } from "../types/types";
 import { io, Socket } from "socket.io-client";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast/headless";
+import toast from "react-hot-toast";
 import { CheckIcon, CopyIcon } from "lucide-react";
 
 const RoomWaiting = () => {
