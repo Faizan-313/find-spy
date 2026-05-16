@@ -9,6 +9,8 @@ import { Toaster } from "react-hot-toast"
 import RoomWaiting from "./pages/RoomWaiting"
 import Game from "./pages/GameSection/Game"
 import HowToPlay from "./pages/HowToPlay"
+import RouteSeo from "./seo/RouteSeo"
+import WebSiteJsonLd from "./seo/WebSiteJsonLd"
 
 function AppContent(){
   return(
@@ -30,9 +32,13 @@ function App() {
   return (
     <>
         <Router>
+          <RouteSeo />
+          <WebSiteJsonLd />
           <Navbar />
           <Toaster position="top-center" reverseOrder={false} />
-          <AppContent />
+          <main id="main-content">
+            <AppContent />
+          </main>
           <Footer />
         </Router>
     </>

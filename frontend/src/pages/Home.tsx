@@ -6,18 +6,21 @@ function Home() {
 
             <img
                 src="homepage-bg.png"
-                alt=""
+                alt="Dark tactical background for Find the Spy multiplayer game"
                 className="absolute inset-0 w-full h-full object-cover brightness-[0.3] saturate-50"
+                fetchPriority="high"
             />
 
             <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] text-center px-5 pt-24 pb-28 sm:pt-16 sm:pb-16">
+
+                <h1 className="sr-only">Find the Spy — free online multiplayer social deduction game</h1>
 
                 <p className="text-green-400 text-[0.65rem] sm:text-[0.7rem] font-semibold tracking-[4px] sm:tracking-[5px] uppercase mb-4 sm:mb-5 animate-fade-in">
                     — classified operation —
                 </p>
 
                 <p className="text-white/40 text-xs sm:text-sm font-medium tracking-[2px] max-w-sm leading-relaxed mb-8 sm:mb-12 px-2">
-                    Blend in. Root out the spy. Trust no one.
+                    Blend in. Root out the spy. Trust no one. Play free in your browser with 2–8 players.
                 </p>
                 
                 <div className="grow min-h-[4rem] sm:min-h-[6rem] max-h-28 sm:max-h-40 w-full" aria-hidden />

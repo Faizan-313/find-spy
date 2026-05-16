@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /how-to-play
+Allow: /create-room
+Allow: /join-room
+Disallow: /room-waiting
+Disallow: /room
+Disallow: /game
