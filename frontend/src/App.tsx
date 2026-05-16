@@ -8,11 +8,13 @@ import Room from "./pages/RoomWaiting"
 import { Toaster } from "react-hot-toast"
 import RoomWaiting from "./pages/RoomWaiting"
 import Game from "./pages/GameSection/Game"
+import HowToPlay from "./pages/HowToPlay"
 
 function AppContent(){
   return(
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/how-to-play" element={<HowToPlay />} />
       <Route path="/create-room" element={<CreateRoom />} />
       <Route path="/join-room" element={<JoinRoom />} />
       <Route path="/room-waiting" element={<RoomWaiting />} />

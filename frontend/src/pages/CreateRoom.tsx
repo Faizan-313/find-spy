@@ -110,25 +110,33 @@ const CreateRoom = () => {
                 <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
                     <div className="h-px flex-1 bg-[#00ff64]/30" />
                     <span className="text-[#00ff64] text-[10px] font-bold tracking-[0.3em] uppercase">
-                        Classified Operation
+                        New operation
                     </span>
                     <div className="h-px flex-1 bg-[#00ff64]/30" />
                 </div>
 
-                <div className="relative border border-white/10 bg-white/3 backdrop-blur-sm p-5 sm:p-8"
-                    style={{ clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))' }}>
+                <div
+                    className="relative border border-[#00ff64]/25 bg-[#00ff64]/[0.03] backdrop-blur-sm p-5 sm:p-8 shadow-[0_0_40px_rgba(0,255,100,0.06)]"
+                    style={{ clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))' }}
+                >
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#00ff64]/60" />
 
                     <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#00ff64]" />
                     <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#00ff64]" />
                     <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#00ff64]" />
                     <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#00ff64]" />
 
-                    <h1 className="text-white text-2xl sm:text-3xl font-black tracking-[0.12em] sm:tracking-[0.15em] uppercase mb-1"
-                        style={{ fontFamily: "'Arial Black', sans-serif", textShadow: '0 0 30px rgba(0,255,100,0.2)' }}>
+                    <span className="inline-block mb-3 px-2 py-0.5 text-[9px] font-bold tracking-[0.2em] uppercase border border-[#00ff64]/40 text-[#00ff64] bg-[#00ff64]/10">
+                        Host · create
+                    </span>
+                    <h1
+                        className="text-white text-2xl sm:text-3xl font-black tracking-[0.12em] sm:tracking-[0.15em] uppercase mb-1"
+                        style={{ fontFamily: "'Arial Black', sans-serif", textShadow: '0 0 30px rgba(0,255,100,0.2)' }}
+                    >
                         Create Room
                     </h1>
                     <p className="text-white/30 text-[10px] sm:text-xs tracking-widest uppercase mb-6 sm:mb-8">
-                        Initialize secure channel
+                        Name your operation and enter as host
                     </p>
 
                     <form onSubmit={(e) => handleSubmit(e)} className="flex flex-col gap-5 sm:gap-6">
@@ -182,10 +190,10 @@ const CreateRoom = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="mt-1 sm:mt-2 w-full sm:w-auto bg-[#00ff64] text-black font-black text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] uppercase px-6 sm:px-8 py-3.5 sm:py-4 cursor-pointer
+                            className="mt-1 sm:mt-2 w-full bg-[#00ff64] text-black font-black text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] uppercase px-6 sm:px-8 py-3.5 sm:py-4 cursor-pointer
                                         transition-all duration-200 hover:bg-white hover:shadow-[0_0_40px_rgba(0,255,100,0.4)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))' }}>
-                            {loading ? "Initializing..." : "Initialize Room"}
+                            {loading ? "Creating..." : "Create Room"}
                         </button>
                     </form>
                 </div>
