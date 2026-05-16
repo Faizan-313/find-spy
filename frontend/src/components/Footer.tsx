@@ -13,6 +13,15 @@ const Footer = () => {
                         <p className="text-white/40 text-sm tracking-wide m-0">
                             © 2026 All rights reserved.
                         </p>
+                        <a
+                            href="https://github.com/Faizan-313/find-spy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 mt-3 text-[13px] text-white/50 no-underline transition-colors duration-200 hover:text-green-400"
+                        >
+                            <span className="w-1 h-1 rounded-full bg-current opacity-50" />
+                            GitHub
+                        </a>
                     </div>
 
                     <div>
