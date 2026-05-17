@@ -1,4 +1,5 @@
 import type { Player } from "../../../types/types";
+import PlayerWinBadge from "../../../components/PlayerWinBadge";
 import { getAvatarColor } from "../../../utils/utils";
 
 type PlayerListProps = {
@@ -64,9 +65,12 @@ const PlayerList = ({
                                         You
                                     </span>
                                 )}
+                                <PlayerWinBadge wins={player.winsInRoom ?? 0} />
                             </div>
                             <span className="text-white/20 text-[9px] tracking-widest uppercase mt-0.5">
                                 {player.isHost ? "Commander" : `Agent ${String(index + 1).padStart(2, "0")}`}
+                                {" · "}
+                                {player.winsInRoom ?? 0} room win{(player.winsInRoom ?? 0) === 1 ? "" : "s"}
                             </span>
                         </div>
 

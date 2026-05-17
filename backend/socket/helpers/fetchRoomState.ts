@@ -9,8 +9,30 @@ async function fetchRoomState(roomId: string): Promise<socketRoom | null> {
     if (!roomResult.rows.length) return null;
     const room = roomResult.rows[0];
 
-    const playersResult = await dbPool.query<{ id: string; name: string; is_host: boolean; is_spy: boolean; word: string | null }>(
-        "SELECT id, name, is_host, is_spy, word FROM player WHERE room_id = $1",
+    const playersResult = await dbPool.query<{
+        id: string;
+        name: string;
+        is_host: boolean;
+        is_spy: boolean;
+        word: string | null;
+        room_wins: string;
+    }>(
+        `SELECT
+            p.id,
+            p.name,
+            p.is_host,
+            p.is_spy,
+            p.word,
+            COALESCE(w.win_count, 0)::text AS room_wins
+        FROM player p
+        LEFT JOIN (
+            SELECT winner_id, COUNT(*) AS win_count
+            FROM winners
+            WHERE room_id = $1
+            GROUP BY winner_id
+        ) w ON w.winner_id = p.id
+        WHERE p.room_id = $1
+        ORDER BY p.is_host DESC, p.name ASC`,
         [roomId]
     );
 
@@ -63,6 +85,7 @@ async function fetchRoomState(roomId: string): Promise<socketRoom | null> {
             isHost: p.is_host,
             isSpy: p.is_spy,
             word: p.word ? p.word : undefined,
+            winsInRoom: parseInt(p.room_wins, 10) || 0,
         })),
         isVotingStarted: room.is_voting_started,
         isStarted: room.is_started,

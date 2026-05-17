@@ -1,7 +1,37 @@
 import type { dbRoom } from "../../types/types";
 import dbPool from "../../database/db.config";
 import { Server } from "socket.io";
-import fetchRoomState from "./fetchRoomState"
+import fetchRoomState from "./fetchRoomState";
+
+export const DISCONNECT_LEAVE_GRACE_MS = 5000;
+
+const pendingLeaves = new Map<string, NodeJS.Timeout>();
+
+const pendingLeaveKey = (username: string, roomCode: string) => `${username}::${roomCode}`;
+
+const cancelPendingLeave = (username: string, roomCode: string) => {
+    const key = pendingLeaveKey(username, roomCode);
+    const timer = pendingLeaves.get(key);
+    if (timer) {
+        clearTimeout(timer);
+        pendingLeaves.delete(key);
+    }
+};
+
+/** Clear socket session state without deleting DB rows (room already finished). */
+export async function detachSocketsFromRoom(io: Server, roomCode: string): Promise<void> {
+    const sockets = await io.in(roomCode).fetchSockets();
+    for (const s of sockets) {
+        const u = s.data.username as string | undefined;
+        const rc = s.data.roomCode as string | undefined;
+        if (u && rc) {
+            cancelPendingLeave(u, rc);
+        }
+        s.data.username = undefined;
+        s.data.roomCode = undefined;
+        s.leave(roomCode);
+    }
+}
 
 async function handlePlayerLeave(
     socket: any,
@@ -17,38 +47,30 @@ async function handlePlayerLeave(
 
     const room = roomResult.rows[0];
 
-    // Host leaving: mark room ended, remove all players, and evict all sockets
+    // Room was ended via "End game" — keep player rows for history / winners; only disconnect sockets.
+    if (room.is_ended) {
+        cancelPendingLeave(username, roomCode);
+        socket.data.username = undefined;
+        socket.data.roomCode = undefined;
+        socket.leave(roomCode);
+        return;
+    }
+
+    // Host leaving an active room: mark ended, remove players, evict sockets
     if (room.host === username) {
         await dbPool.query(
             "UPDATE room SET is_ended = TRUE, is_started = FALSE, is_voting_started = FALSE WHERE id = $1",
             [room.id]
         );
-        await dbPool.query("DELETE FROM vote WHERE room_id = $1", [room.id]);
-        await dbPool.query("DELETE FROM player WHERE room_id = $1", [room.id]);
         io.to(roomCode).emit("roomEnded", { message: "The host has left. The room has been closed." });
-
-        // Clear socket data for every socket currently in the room and evict them.
-        const sockets = await io.in(roomCode).fetchSockets();
-        for (const s of sockets) {
-            s.data.username = undefined;
-            s.data.roomCode = undefined;
-            s.leave(roomCode);
-        }
+        await detachSocketsFromRoom(io, roomCode);
     } else {
-        // Regular player remove from DB and notify remaining players
-        await dbPool.query(
-            "DELETE FROM vote WHERE room_id = $1 AND voter_id IN (SELECT id FROM player WHERE name = $2 AND room_id = $1)",
-            [room.id, username]
-        );
-        await dbPool.query(
-            "DELETE FROM player WHERE name = $1 AND room_id = $2",
-            [username, room.id]
-        );
         socket.leave(roomCode);
+        socket.data.username = undefined;
+        socket.data.roomCode = undefined;
 
         let updatedRoom = await fetchRoomState(room.id);
 
-        // Mid-game: if only the host remains, end the round and send everyone back to lobby state
         const midGame = room.is_started || room.is_voting_started;
         const onlyHostRemains =
             midGame &&
@@ -77,19 +99,5 @@ async function handlePlayerLeave(
         }
     }
 }
-
-// Tracks users who disconnected but may be navigating between pages.
-const pendingLeaves = new Map<string, NodeJS.Timeout>();
-
-const pendingLeaveKey = (username: string, roomCode: string) => `${username}::${roomCode}`;
-
-const cancelPendingLeave = (username: string, roomCode: string) => {
-    const key = pendingLeaveKey(username, roomCode);
-    const timer = pendingLeaves.get(key);
-    if (timer) {
-        clearTimeout(timer);
-        pendingLeaves.delete(key);
-    }
-};
 
 export { handlePlayerLeave, cancelPendingLeave, pendingLeaves, pendingLeaveKey };

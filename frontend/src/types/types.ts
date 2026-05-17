@@ -4,6 +4,7 @@ interface Player {
     isHost: boolean;
     isSpy?: boolean;
     word?: string;
+    winsInRoom?: number;
 }
 
 interface Vote {

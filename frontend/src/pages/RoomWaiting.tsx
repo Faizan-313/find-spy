@@ -1,9 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Player } from "../types/types";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
+import { disconnectSocket, getSocket } from "../socket/client";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { CheckIcon, CopyIcon } from "lucide-react";
+import PlayerWinBadge from "../components/PlayerWinBadge";
 
 const RoomWaiting = () => {
     const location = useLocation();
@@ -15,21 +17,20 @@ const RoomWaiting = () => {
     const navigation = useNavigate();
     
     useEffect(() => {
-        const socket = io(import.meta.env.VITE_API_URL, {
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
-
+        const socket = getSocket();
         socketRef.current = socket;
 
-        socket.on("connect", () => {
+        const emitJoin = () => {
             socket.emit("joinRoom", {
                 roomCode,
-                username: userName
+                username: userName,
             });
-        });
+        };
+
+        socket.on("connect", emitJoin);
+        if (socket.connected) {
+            emitJoin();
+        }
 
         socket.on("roomUpdated", (roomData: { players?: Player[] }) => {
             if (!roomData?.players) return;
@@ -58,6 +59,7 @@ const RoomWaiting = () => {
 
         socket.on("leftRoom", () => {
             setIsLeaving(false);
+            disconnectSocket();
             navigation("/create-room");
         });
 
@@ -78,14 +80,13 @@ const RoomWaiting = () => {
         });
 
         return () => {
-            socket.off("connect");
+            socket.off("connect", emitJoin);
             socket.off("roomUpdated");
             socket.off("error");
             socket.off("roomEnded");
             socket.off("leftRoom");
             socket.off("gameStarted");
             socket.off("connect_error");
-            socket.disconnect();
         };
     }, [navigation, roomCode, userName, roomName]);
 
@@ -103,7 +104,7 @@ const RoomWaiting = () => {
         }
 
         setIsLeaving(true);
-        socketRef.current.emit('leaveRoom', data);
+        socketRef.current.emit("leaveRoom", data);
 
         setTimeout(() => {
             setIsLeaving(false);
@@ -242,7 +243,13 @@ const RoomWaiting = () => {
                                                     Host
                                                 </span>
                                             )}
+                                            <PlayerWinBadge wins={player.winsInRoom ?? 0} />
                                         </div>
+                                        <p className="text-white/25 text-[9px] tracking-widest uppercase mt-1">
+                                            {(player.winsInRoom ?? 0) === 0
+                                                ? "No wins yet"
+                                                : `${player.winsInRoom} room win${player.winsInRoom === 1 ? "" : "s"}`}
+                                        </p>
                                     </div>
                                 </div>
                             </div>

@@ -1,7 +1,6 @@
 import { Server } from "socket.io";
 import dbPool from "../database/db.config";
-import type { socketRoom, dbRoom, Player} from "../types/types"
-import generateRoomCode from "./helpers/generateRoomCode";
+import type { dbRoom } from "../types/types"
 import {
     validateRoomName,
     validateAgentName,
@@ -9,7 +8,15 @@ import {
     validateRoomCodeFormat,
 } from "./helpers/roomValidation";
 import fetchRoomState from "./helpers/fetchRoomState"
-import { handlePlayerLeave, cancelPendingLeave, pendingLeaves, pendingLeaveKey } from "./helpers/playerLeave"
+import {
+    handlePlayerLeave,
+    cancelPendingLeave,
+    pendingLeaves,
+    pendingLeaveKey,
+    DISCONNECT_LEAVE_GRACE_MS,
+    detachSocketsFromRoom,
+} from "./helpers/playerLeave";
+import { createRoomWithHost, joinRoomByCode, RoomServiceError } from "../services/room.service";
 import generateWords from "./helpers/generateWords";
 import resolveGameResult from "./helpers/resolveGameResult";
 
@@ -46,76 +53,20 @@ export const setUpSocket = (server: any) => {
             const username = data.username.trim();
 
             try {
-                //check if this user is already hosting an active room
-                const existingRoomResult = await dbPool.query<{ id: string; is_ended: boolean }>(
-                    "SELECT id, is_ended FROM room WHERE host = $1 ORDER BY created_at DESC LIMIT 1",
-                    [username]
-                );
+                const newRoom = await createRoomWithHost(roomName, username);
 
-                if (existingRoomResult.rows.length > 0 && existingRoomResult.rows[0].is_ended === false) {
-                    socket.emit("error", {
-                        message: "You are already hosting a live room. Please end that room before creating a new one.",
-                    });
-                    return;
-                }
-
-                let roomCode: string | null = null;
-                for (let attempt = 0; attempt < 30; attempt++) {
-                    const candidate = generateRoomCode();
-                    const taken = await dbPool.query("SELECT 1 FROM room WHERE room_code = $1 LIMIT 1", [
-                        candidate,
-                    ]);
-                    if (taken.rows.length === 0) {
-                        roomCode = candidate;
-                        break;
-                    }
-                }
-                if (!roomCode) {
-                    socket.emit("error", { message: "Could not allocate a unique room code. Please try again." });
-                    return;
-                }
-
-                const roomResult = await dbPool.query<{ id: string }>(
-                    "INSERT INTO room (name, host, room_code) VALUES ($1, $2, $3) RETURNING id",
-                    [roomName, username, roomCode]
-                );
-
-                if (!roomResult.rows.length) {
-                    socket.emit("error", { message: "Failed to create room" });
-                    return;
-                }
-
-                const roomId = roomResult.rows[0].id;
-
-                const playerResult = await dbPool.query<{ id: string }>(
-                    "INSERT INTO player (name, is_host, room_id) VALUES ($1, $2, $3) RETURNING id",
-                    [username, true, roomId]
-                );
-
-                if (!playerResult.rows.length) {
-                    socket.emit("error", { message: "Failed to create host player" });
-                    return;
-                }
-
-                // Store on socket for disconnect cleanup
                 socket.data.username = username;
-                socket.data.roomCode = roomCode;
-                cancelPendingLeave(username, roomCode);
+                socket.data.roomCode = newRoom.roomCode;
+                cancelPendingLeave(username, newRoom.roomCode);
 
-                const newRoom: socketRoom = {
-                    id: roomId,
-                    roomCode,
-                    name: roomName,
-                    host: username,
-                    players: [{ id: playerResult.rows[0].id, name: username, isHost: true }],
-                    isVotingStarted: false,
-                    isStarted: false,
-                    votes: [],
-                };
-                
-                socket.join(roomCode);
-                io.to(roomCode).emit("roomUpdated", newRoom);
+                socket.join(newRoom.roomCode);
+                socket.emit("roomUpdated", newRoom);
+                io.to(newRoom.roomCode).emit("roomUpdated", newRoom);
             } catch (err) {
+                if (err instanceof RoomServiceError) {
+                    socket.emit("error", { message: err.message });
+                    return;
+                }
                 console.error("createRoom error:", err);
                 socket.emit("error", { message: "Internal server error" });
             }
@@ -141,75 +92,20 @@ export const setUpSocket = (server: any) => {
             }
 
             try {
-                const roomResult = await dbPool.query<dbRoom>(
-                    "SELECT * FROM room WHERE room_code = $1 LIMIT 1",
-                    [roomCode]
-                );
+                const { state: updatedRoom } = await joinRoomByCode(roomCode, username);
 
-                if (!roomResult.rows.length) {
-                    socket.emit("error", { message: "Room not found" });
-                    return;
-                }
-
-                const room = roomResult.rows[0];
-
-                if (room.is_ended) {
-                    socket.emit("error", { message: "Game has already ended" });
-                    return;
-                }
-
-                // Allow an existing player (by username) to rejoin at any time, even
-                // after the game has started. 
-                const duplicateResult = await dbPool.query(
-                    "SELECT id FROM player WHERE room_id = $1 AND name = $2 LIMIT 1",
-                    [room.id, username]
-                );
-
-                if (duplicateResult.rows.length > 0) {
-                    socket.data.username = username;
-                    socket.data.roomCode = roomCode;
-
-                    cancelPendingLeave(username, roomCode);
-                    socket.join(room.room_code);
-
-                    const currentRoom = await fetchRoomState(room.id);
-
-                    io.to(room.room_code).emit("roomUpdated", currentRoom);
-                    return;
-                }
-
-                // Only block brand new players from joining a started game.
-                if (room.is_started) {
-                    socket.emit("error", { message: "Game has already started please wait!" });
-                    return;
-                }
-
-                const countResult = await dbPool.query<{ count: string }>(
-                    "SELECT COUNT(*) AS count FROM player WHERE room_id = $1",
-                    [room.id]
-                );
-
-                if (parseInt(countResult.rows[0].count, 10) >= 8) {
-                    socket.emit("error", { message: "Room is full" });
-                    return;
-                }
-
-                await dbPool.query(
-                    "INSERT INTO player (name, is_host, room_id) VALUES ($1, $2, $3)",
-                    [username, false, room.id]
-                );
-
-                // Store on socket for disconnect cleanup
                 socket.data.username = username;
                 socket.data.roomCode = roomCode;
-
                 cancelPendingLeave(username, roomCode);
 
-                const updatedRoom = await fetchRoomState(room.id);
-
-                socket.join(room.room_code);
-                io.to(room.room_code).emit("roomUpdated", updatedRoom);
+                socket.join(roomCode);
+                socket.emit("roomUpdated", updatedRoom);
+                io.to(roomCode).emit("roomUpdated", updatedRoom);
             } catch (err) {
+                if (err instanceof RoomServiceError) {
+                    socket.emit("error", { message: err.message });
+                    return;
+                }
                 console.error("joinRoom error:", err);
                 socket.emit("error", { message: "Internal server error" });
             }
@@ -512,7 +408,6 @@ export const setUpSocket = (server: any) => {
                     return;
                 }
 
-                // Wipe previous round's votes; keep the winners audit log intact.
                 await dbPool.query("DELETE FROM vote WHERE room_id = $1", [room.id]);
 
                 const words: { word1: string; word2: string } = generateWords();
@@ -593,11 +488,13 @@ export const setUpSocket = (server: any) => {
                     return;
                 }
 
-                // End the game
                 await dbPool.query(
-                    "UPDATE room SET is_ended = TRUE WHERE id = $1",
+                    "UPDATE room SET is_ended = TRUE, is_started = FALSE, is_voting_started = FALSE WHERE id = $1",
                     [room.id]
                 );
+
+                // Prevent disconnect/leave handlers from deleting player rows after everyone navigates away.
+                await detachSocketsFromRoom(io, data.roomCode);
 
                 io.to(data.roomCode).emit("gameEnded", {
                     message: "The game has ended!"
@@ -677,7 +574,7 @@ export const setUpSocket = (server: any) => {
             socket.to(data.roomCode).emit("userTyping", { username: data.username });
         })
 
-        socket.on("disconnect", () => {
+        socket.on("disconnect", async () => {
             console.log("Client disconnected:", socket.id);
             const { username, roomCode } = socket.data as {
                 username?: string;
@@ -685,11 +582,22 @@ export const setUpSocket = (server: any) => {
             };
             if (!username || !roomCode) return;
 
-            // Schedule a delayed leave; any fresh socket from the same user in the
-            // same room within the grace window cancels this via cancelPendingLeave.
+            cancelPendingLeave(username, roomCode);
+
+            try {
+                const endedResult = await dbPool.query<{ is_ended: boolean }>(
+                    "SELECT is_ended FROM room WHERE room_code = $1 LIMIT 1",
+                    [roomCode]
+                );
+                if (endedResult.rows[0]?.is_ended) {
+                    return;
+                }
+            } catch (err) {
+                console.error("disconnect room lookup error:", err);
+                return;
+            }
+
             const key = pendingLeaveKey(username, roomCode);
-            const existing = pendingLeaves.get(key);
-            if (existing) clearTimeout(existing);
 
             const timer = setTimeout(async () => {
                 pendingLeaves.delete(key);
@@ -704,7 +612,7 @@ export const setUpSocket = (server: any) => {
                 } catch (err) {
                     console.error("disconnect cleanup error:", err);
                 }
-            }, 1500);
+            }, DISCONNECT_LEAVE_GRACE_MS);
 
             pendingLeaves.set(key, timer);
         });

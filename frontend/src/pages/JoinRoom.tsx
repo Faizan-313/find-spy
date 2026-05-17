@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
+import { getSocket } from "../socket/client";
 import toast from "react-hot-toast";
 import type { socketRoom } from "../types/types"
 import { validateAgentName, normalizeRoomCode, validateRoomCodeFormat } from "../utils/validation";
@@ -25,13 +26,7 @@ const JoinRoom = () => {
     }, [data]);
 
     useEffect(() => {
-        const socket = io(import.meta.env.VITE_API_URL, {
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
-
+        const socket = getSocket();
         socketRef.current = socket;
 
         socket.on('error', (err: {message: string}) => {
@@ -62,7 +57,6 @@ const JoinRoom = () => {
             socket.off("error");
             socket.off("roomUpdated");
             socket.off("connect_error");
-            socket.disconnect();
         };
     }, [navigate]);
 

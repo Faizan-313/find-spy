@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
+import { disconnectSocket, getSocket } from "../../socket/client";
 import toast from "react-hot-toast";
 
 import type {
@@ -90,18 +91,17 @@ const Game = () => {
             return;
         }
 
-        const socket = io(import.meta.env.VITE_API_URL, {
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-        });
-
+        const socket = getSocket();
         socketRef.current = socket;
 
-        socket.on("connect", () => {
+        const emitJoin = () => {
             socket.emit("joinRoom", { roomCode, username: userName });
-        });
+        };
+
+        socket.on("connect", emitJoin);
+        if (socket.connected) {
+            emitJoin();
+        }
 
         socket.on("error", (err: { message?: string }) => {
             if (err?.message) toast.error(err.message);
@@ -113,10 +113,12 @@ const Game = () => {
 
         socket.on("roomEnded", (msg: { message?: string }) => {
             toast.error(msg?.message || "The room has been closed by the host");
+            disconnectSocket();
             navigation("/create-room");
         });
 
         socket.on("leftRoom", () => {
+            disconnectSocket();
             navigation("/create-room");
         });
 
@@ -240,6 +242,7 @@ const Game = () => {
             setGameState("ended");
             toast.success(data?.message || "Game has ended!");
             pushHistory({ event: "Game ended", type: "system" });
+            disconnectSocket();
             navigation("/create-room");
         });
 
@@ -277,11 +280,11 @@ const Game = () => {
         })
 
         return () => {
+            socket.off("connect", emitJoin);
             socket.removeAllListeners();
             if (votingTimerRef.current) clearInterval(votingTimerRef.current);
             typingTimeoutsRef.current.forEach((t) => clearTimeout(t));
             typingTimeoutsRef.current.clear();
-            socket.disconnect();
         };
     }, [navigation, userName, roomName, roomCode]);
 
