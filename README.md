@@ -198,6 +198,6 @@ This project is licensed under the MIT License.
 
 ---
 
-## ⭐ Support
+## Support
 
-If you like this project, give it a ⭐ on GitHub!
+If you like this project, give it a Star on GitHub!
